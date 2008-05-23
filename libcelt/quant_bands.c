@@ -90,6 +90,41 @@ static void compute_fine_allocation(const CELTMode *m, celt_int16_t *bits, int b
    printf ("\n");*/
 }
 
+static void golomb_encode(ec_enc *enc, int x)
+{
+   if (x==0)
+   {
+      ec_enc_bits(enc, 1, 1);
+   } else {
+      int sign = 0;
+      if (x<0)
+      {
+         sign = 1;
+         x = -x;
+      }
+      while (x > 0)
+      {
+         ec_enc_bits(enc, 0, 1);
+         x--;
+      }
+      ec_enc_bits(enc, 1, 1);
+      ec_enc_bits(enc, sign, 1);
+   }
+}
+
+static int golomb_decode(ec_dec *dec)
+{
+   int x=0;
+   while (ec_dec_bits(dec, 1)==0)
+      x++;
+   if (x!=0)
+   {
+      if (ec_dec_bits(dec, 1))
+         x = -x;
+   }
+   return x;
+}
+
 #ifdef FIXED_POINT
 static inline celt_ener_t dB2Amp(celt_ener_t dB)
 {
@@ -122,8 +157,9 @@ static inline celt_word16_t amp2dB(celt_ener_t amp)
 }
 #endif
 
-static const celt_word16_t base_resolution = QCONST16(6.f,8);
+//static const celt_word16_t base_resolution = QCONST16(6.f,8);
 
+#define base_resolution (i<10?QCONST16(6.f,8):QCONST16(3.f,8))
 int *quant_prob_alloc(const CELTMode *m)
 {
    int i;
@@ -179,7 +215,9 @@ static void quant_energy_mono(const CELTMode *m, celt_ener_t *eBands, celt_word1
       if (ec_enc_tell(enc, 0) - bits > budget+16)
          qi = -1;
       else
-         ec_laplace_encode_start(enc, qi, prob[2*i], prob[2*i+1]);
+         golomb_encode(enc, qi);
+      /*ec_laplace_encode_start(enc, qi, prob[2*i], prob[2*i+1]);*/
+
       q = qi*base_resolution;
       error[i] = f - SHL16(qi,8);
       
@@ -188,7 +226,7 @@ static void quant_energy_mono(const CELTMode *m, celt_ener_t *eBands, celt_word1
          oldEBands[i] = -QCONST16(12.f,8);
       prev = mean+prev+MULT16_16_Q15(Q15ONE-beta,q);
    }
-   
+   /*printf ("%d\n", ec_enc_tell(enc, 0)-bits);*/
    compute_fine_allocation(m, fine_quant, budget-(ec_enc_tell(enc, 0)-bits));
 
    /* Encode finer resolution */
@@ -247,7 +285,8 @@ static void unquant_energy_mono(const CELTMode *m, celt_ener_t *eBands, celt_wor
       if (ec_dec_tell(dec, 0) - bits > budget+16)
          qi = -1;
       else
-         qi = ec_laplace_decode_start(dec, prob[2*i], prob[2*i+1]);
+         qi = golomb_decode(dec);
+      /*qi = ec_laplace_decode_start(dec, prob[2*i], prob[2*i+1]);*/
       q = qi*base_resolution;
       
       oldEBands[i] = mean+MULT16_16_Q15(coef,oldEBands[i])+prev+q;
