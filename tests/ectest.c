@@ -8,10 +8,13 @@
 #include "entcode.h"
 #include "entenc.h"
 #include "entdec.h"
+#include <string.h>
 
 #ifndef M_LOG2E
 # define M_LOG2E    1.4426950408889634074
 #endif
+#define DATA_SIZE 10000000
+#define DATA_SIZE2 10000
 
 int main(int _argc,char **_argv){
   ec_byte_buffer buf;
@@ -28,8 +31,10 @@ int main(int _argc,char **_argv){
   int            ret;
   ret=0;
   entropy=0;
+  unsigned char *ptr;
   /*Testing encoding of raw bit values.*/
-  ec_byte_writeinit(&buf);
+  ptr = malloc(DATA_SIZE);
+  ec_byte_writeinit_buffer(&buf, ptr, DATA_SIZE);
   ec_enc_init(&enc,&buf);
   for(ft=0;ft<1024;ft++){
     for(i=0;i<ft;i++){
@@ -57,7 +62,7 @@ int main(int _argc,char **_argv){
    "Encoded %0.2lf bits of entropy to %0.2lf bits (%0.3lf%% wasted).\n",
    entropy,ldexp(nbits,-4),100*(nbits-ldexp(entropy,4))/nbits);
   fprintf(stderr,"Packed to %li bytes.\n",(long)(buf.ptr-buf.buf));
-  ec_byte_readinit(&buf,ec_byte_get_buffer(&buf),ec_byte_bytes(&buf));
+  ec_byte_readinit(&buf,ptr,DATA_SIZE);
   ec_dec_init(&dec,&buf);
   for(ft=0;ft<1024;ft++){
     for(i=0;i<ft;i++){
@@ -95,7 +100,7 @@ int main(int _argc,char **_argv){
     ft=rand()/((RAND_MAX>>(rand()%11))+1)+10;
     sz=rand()/((RAND_MAX>>(rand()%9))+1);
     data=(unsigned *)malloc(sz*sizeof(*data));
-    ec_byte_writeinit(&buf);
+    ec_byte_writeinit_buffer(&buf, ptr, DATA_SIZE2);
     ec_enc_init(&enc,&buf);
     zeros = rand()%13==0;
     for(j=0;j<sz;j++){
@@ -117,7 +122,7 @@ int main(int _argc,char **_argv){
       ret=-1;
     }
     tell_bits -= 8*ec_byte_bytes(&buf);
-    ec_byte_readinit(&buf,ec_byte_get_buffer(&buf),ec_byte_bytes(&buf));
+    ec_byte_readinit(&buf,ptr,DATA_SIZE2);
     ec_dec_init(&dec,&buf);
     for(j=0;j<sz;j++){
       sym=ec_dec_uint(&dec,ft);
@@ -131,5 +136,6 @@ int main(int _argc,char **_argv){
     ec_byte_writeclear(&buf);
     free(data);
   }
+  free(ptr);
   return ret;
 }

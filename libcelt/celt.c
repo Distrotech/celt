@@ -639,7 +639,7 @@ int celt_encode_float(CELTEncoder * restrict st, const celt_sig_t * pcm, celt_si
    /*fprintf (stderr, "remaining bits after encode = %d\n", nbCompressedBytes*8-ec_enc_tell(&st->enc, 0));*/
    /*if (ec_enc_tell(&st->enc, 0) < nbCompressedBytes*8 - 7)
       celt_warning_int ("many unused bits: ", nbCompressedBytes*8-ec_enc_tell(&st->enc, 0));*/
-   /*printf ("%d\n", ec_enc_tell(&st->enc, 0)-8*nbCompressedBytes);*/
+   /*printf ("%d\n", 8*nbCompressedBytes-ec_enc_tell(&enc, 0));*/
    /* Finishing the stream with a 0101... pattern so that the decoder can check is everything's right */
    {
       int val = 0;
