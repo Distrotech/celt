@@ -207,7 +207,9 @@ static void compute_pbands(CELTMode *mode, int res)
 static void compute_allocation_table(CELTMode *mode, int res)
 {
    int i, j, eband, nBark;
-   celt_int16_t *allocVectors, *allocEnergy;
+   celt_int32_t *allocVectors;
+   celt_int16_t *allocVectorsS;
+   celt_int16_t *allocEnergy;
    const int C = CHANNELS(mode);
 
    /* Find the number of critical bands supported by our sampling rate */
@@ -216,7 +218,7 @@ static void compute_allocation_table(CELTMode *mode, int res)
        break;
 
    mode->nbAllocVectors = BITALLOC_SIZE;
-   allocVectors = celt_alloc(sizeof(celt_int16_t)*(BITALLOC_SIZE*mode->nbEBands));
+   allocVectors = celt_alloc(sizeof(celt_int32_t)*(BITALLOC_SIZE*mode->nbEBands));
    allocEnergy = celt_alloc(sizeof(celt_int16_t)*(mode->nbAllocVectors*(mode->nbEBands+1)));
    /* Compute per-codec-band allocation from per-critical-band matrix */
    for (i=0;i<BITALLOC_SIZE;i++)
@@ -269,7 +271,10 @@ static void compute_allocation_table(CELTMode *mode, int res)
       allocEnergy[i*(mode->nbEBands+1)+mode->nbEBands] = sum;
    }
    mode->energy_alloc = allocEnergy;
-   mode->allocVectors = allocVectors;
+   allocVectorsS = celt_alloc(sizeof(celt_int16_t)*(BITALLOC_SIZE*mode->nbEBands));
+   for(i=0;i<(BITALLOC_SIZE*mode->nbEBands);i++)
+     allocVectorsS[i] = (celt_int16_t)allocVectors[i];
+   mode->allocVectors = allocVectorsS;
 }
 
 #endif /* STATIC_MODES */
