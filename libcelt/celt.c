@@ -1044,7 +1044,10 @@ int celt_decode_float(CELTDecoder * restrict st, unsigned char *data, int len, c
    }
 
    /* Decode fixed codebook and merge with pitch */
-   unquant_bands(st->mode, X, P, has_pitch, gains, bandE, stereo_mode, pulses, shortBlocks, has_fold, len*8, &dec);
+   if (C==1)
+      unquant_bands(st->mode, X, P, has_pitch, gains, bandE, stereo_mode, pulses, shortBlocks, has_fold, len*8, &dec);
+   else
+      unquant_bands_stereo(st->mode, X, P, has_pitch, gains, bandE, stereo_mode, pulses, shortBlocks, has_fold, len*8, &dec);
 
    if (C==2)
    {
