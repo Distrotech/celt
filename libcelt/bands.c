@@ -596,11 +596,9 @@ void quant_bands_stereo(const CELTMode *m, celt_norm_t * restrict X, celt_norm_t
       } else {
          imid = bitexact_cos(itheta);
          iside = bitexact_cos(16384-itheta);
-         delta = (N-1)*(log2_frac(iside,4)-log2_frac(imid,4));
-         if (delta > 0)
-            delta >>= 1;
+         delta = (N-1)*(log2_frac(iside,6)-log2_frac(imid,6))>>3;
       }
-      mbits = (b-16*qb-delta)/2;
+      mbits = (b-8*qb-delta)/2;
       if (mbits > b-16*qb)
          mbits = b-16*qb;
       if (mbits<0)
@@ -874,11 +872,9 @@ void unquant_bands_stereo(const CELTMode *m, celt_norm_t * restrict X, celt_norm
       } else {
          imid = bitexact_cos(itheta);
          iside = bitexact_cos(16384-itheta);
-         delta = (N-1)*(log2_frac(iside,4)-log2_frac(imid,4));
-         if (delta > 0)
-            delta >>= 1;
+         delta = (N-1)*(log2_frac(iside,6)-log2_frac(imid,6))>>3;
       }
-      mbits = (b-16*qb-delta)/2;
+      mbits = (b-8*qb-delta)/2;
       if (mbits > b-16*qb)
          mbits = b-16*qb;
       if (mbits<0)
