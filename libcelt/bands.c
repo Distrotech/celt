@@ -544,6 +544,7 @@ void quant_bands_stereo(const CELTMode *m, celt_norm_t * restrict X, celt_norm_t
       int curr_balance, curr_bits;
       int imid, iside, itheta;
       int mbits, sbits, delta;
+      int qalloc;
       
       BPbits = m->bits;
 
@@ -568,7 +569,10 @@ void quant_bands_stereo(const CELTMode *m, celt_norm_t * restrict X, celt_norm_t
       
       itheta = floor(.5+16384*0.63662*atan2(side,mid));
       
-      qb = b/16/(2*(eBands[i+1]-eBands[i]-1));
+      qb = b/(32*(N-1));
+      if (remaining_bits > 32 && b>16*30)
+         qb++;
+      qalloc = log2_frac((1<<qb)+1,4);
       if (qb==0)
       {
          itheta=0;
@@ -598,16 +602,16 @@ void quant_bands_stereo(const CELTMode *m, celt_norm_t * restrict X, celt_norm_t
          iside = bitexact_cos(16384-itheta);
          delta = (N-1)*(log2_frac(iside,6)-log2_frac(imid,6))>>3;
       }
-      mbits = (b-8*qb-delta)/2;
-      if (mbits > b-16*qb)
-         mbits = b-16*qb;
+      mbits = (b-qalloc/2-delta)/2;
+      if (mbits > b-qalloc)
+         mbits = b-qalloc;
       if (mbits<0)
          mbits=0;
-      sbits = b-16*qb-mbits;
+      sbits = b-qalloc-mbits;
       //printf ("%d %d %d %d\n", b, mbits, sbits, qb);
       q1 = bits2pulses(m, BPbits[i], mbits);
       q2 = bits2pulses(m, BPbits[i], sbits);
-      curr_bits = BPbits[i][q1]+BPbits[i][q2]+16*qb;
+      curr_bits = BPbits[i][q1]+BPbits[i][q2]+qalloc;
       remaining_bits -= curr_bits;
       while (remaining_bits < 0 && (q1 > 0 || q2 > 0))
       {
@@ -615,10 +619,10 @@ void quant_bands_stereo(const CELTMode *m, celt_norm_t * restrict X, celt_norm_t
          if (q1>q2)
          {
             q1--;
-            curr_bits = BPbits[i][q1]+BPbits[i][q2]+16*qb;
+            curr_bits = BPbits[i][q1]+BPbits[i][q2]+qalloc;
          } else {
             q2--;
-            curr_bits = BPbits[i][q1]+BPbits[i][q2]+16*qb;
+            curr_bits = BPbits[i][q1]+BPbits[i][q2]+qalloc;
          }
          remaining_bits -= curr_bits;
       }
@@ -675,8 +679,8 @@ void quant_bands_stereo(const CELTMode *m, celt_norm_t * restrict X, celt_norm_t
       else
          for (j=C*eBands[i]+N;j<C*eBands[i+1];j++)
             X[j] = 0;
-      orthogonalize(X+C*eBands[i], X+C*eBands[i]+N, N);
-      
+      /*   orthogonalize(X+C*eBands[i], X+C*eBands[i]+N, N);*/
+
       for (j=0;j<N;j++)
          norm[eBands[i]+j] = MULT16_16_Q15(n,X[C*eBands[i]+j]);
 
@@ -832,6 +836,7 @@ void unquant_bands_stereo(const CELTMode *m, celt_norm_t * restrict X, celt_norm
       int curr_balance, curr_bits;
       int imid, iside, itheta;
       int mbits, sbits, delta;
+      int qalloc;
       
       BPbits = m->bits;
 
@@ -849,7 +854,10 @@ void unquant_bands_stereo(const CELTMode *m, celt_norm_t * restrict X, celt_norm
          b = 0;
       
       
-      qb = b/16/(2*(eBands[i+1]-eBands[i]-1));
+      qb = b/(32*(N-1));
+      if (remaining_bits > 32 && b>16*30)
+         qb++;
+      qalloc = log2_frac((1<<qb)+1,4);
       if (qb==0)
       {
          itheta=0;
@@ -874,16 +882,16 @@ void unquant_bands_stereo(const CELTMode *m, celt_norm_t * restrict X, celt_norm
          iside = bitexact_cos(16384-itheta);
          delta = (N-1)*(log2_frac(iside,6)-log2_frac(imid,6))>>3;
       }
-      mbits = (b-8*qb-delta)/2;
-      if (mbits > b-16*qb)
-         mbits = b-16*qb;
+      mbits = (b-qalloc/2-delta)/2;
+      if (mbits > b-qalloc)
+         mbits = b-qalloc;
       if (mbits<0)
          mbits=0;
-      sbits = b-16*qb-mbits;
+      sbits = b-qalloc-mbits;
       //printf ("%d %d %d %d\n", b, mbits, sbits, qb);
       q1 = bits2pulses(m, BPbits[i], mbits);
       q2 = bits2pulses(m, BPbits[i], sbits);
-      curr_bits = BPbits[i][q1]+BPbits[i][q2]+16*qb;
+      curr_bits = BPbits[i][q1]+BPbits[i][q2]+qalloc;
       remaining_bits -= curr_bits;
       while (remaining_bits < 0 && (q1 > 0 || q2 > 0))
       {
@@ -891,10 +899,10 @@ void unquant_bands_stereo(const CELTMode *m, celt_norm_t * restrict X, celt_norm
          if (q1>q2)
          {
             q1--;
-            curr_bits = BPbits[i][q1]+BPbits[i][q2]+16*qb;
+            curr_bits = BPbits[i][q1]+BPbits[i][q2]+qalloc;
          } else {
             q2--;
-            curr_bits = BPbits[i][q1]+BPbits[i][q2]+16*qb;
+            curr_bits = BPbits[i][q1]+BPbits[i][q2]+qalloc;
          }
          remaining_bits -= curr_bits;
       }
@@ -943,17 +951,15 @@ void unquant_bands_stereo(const CELTMode *m, celt_norm_t * restrict X, celt_norm
       deinterleave(X+C*eBands[i], C*N);
       if (q1 > 0)
          alg_unquant(X+C*eBands[i], N, q1, P+C*eBands[i], dec);
-         //alg_quant(X+C*eBands[i], W+C*eBands[i], N, q1, P+C*eBands[i], enc);
       else
          for (j=C*eBands[i];j<C*eBands[i]+N;j++)
             X[j] = P[j];
       if (q2 > 0)
          alg_unquant(X+C*eBands[i]+N, N, q2, P+C*eBands[i]+N, dec);
-         //alg_quant(X+C*eBands[i]+N, W+C*eBands[i], N, q2, P+C*eBands[i]+N, enc);
       else
          for (j=C*eBands[i]+N;j<C*eBands[i+1];j++)
             X[j] = 0;
-      orthogonalize(X+C*eBands[i], X+C*eBands[i]+N, N);
+      /*orthogonalize(X+C*eBands[i], X+C*eBands[i]+N, N);*/
       
       for (j=0;j<N;j++)
          norm[eBands[i]+j] = MULT16_16_Q15(n,X[C*eBands[i]+j]);
