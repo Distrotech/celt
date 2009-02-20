@@ -569,9 +569,11 @@ void quant_bands_stereo(const CELTMode *m, celt_norm_t * restrict X, celt_norm_t
       
       itheta = floor(.5+16384*0.63662*atan2(side,mid));
       
-      qb = b/(32*(N-1));
-      if (remaining_bits > 32 && b>16*30)
-         qb++;
+      qb = (b-2*(N-1)*(50-log2_frac(N,4)))/(32*(N-1));
+      if (qb > (b>>BITRES)-1)
+         qb = (b>>BITRES)-1;
+      if (qb<0)
+         qb = 0;
       qalloc = log2_frac((1<<qb)+1,4);
       if (qb==0)
       {
@@ -854,9 +856,11 @@ void unquant_bands_stereo(const CELTMode *m, celt_norm_t * restrict X, celt_norm
          b = 0;
       
       
-      qb = b/(32*(N-1));
-      if (remaining_bits > 32 && b>16*30)
-         qb++;
+      qb = (b-2*(N-1)*(50-log2_frac(N,4)))/(32*(N-1));
+      if (qb > (b>>BITRES)-1)
+         qb = (b>>BITRES)-1;
+      if (qb<0)
+         qb = 0;
       qalloc = log2_frac((1<<qb)+1,4);
       if (qb==0)
       {
