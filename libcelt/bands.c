@@ -327,6 +327,33 @@ static void stereo_band_mix(const CELTMode *m, celt_norm_t *X, const celt_ener_t
    }
 }
 
+static void point_stereo_mix(const CELTMode *m, celt_norm_t *X, const celt_ener_t *bank, int bandID, int dir)
+{
+   int i = bandID;
+   const celt_int16_t *eBands = m->eBands;
+   const int C = CHANNELS(m);
+   celt_word16_t left, right;
+   celt_word16_t norm;
+   celt_word16_t a1, a2;
+   int j;
+#ifdef FIXED_POINT
+   int shift = celt_zlog2(MAX32(bank[i*C], bank[i*C+1]))-13;
+#endif
+   left = VSHR32(bank[i*C],shift);
+   right = VSHR32(bank[i*C+1],shift);
+   norm = EPSILON + celt_sqrt(EPSILON+MULT16_16(left,left)+MULT16_16(right,right));
+   a1 = DIV32_16(SHL32(EXTEND32(left),14),norm);
+   a2 = dir*DIV32_16(SHL32(EXTEND32(right),14),norm);
+   for (j=eBands[i];j<eBands[i+1];j++)
+   {
+      celt_norm_t r, l;
+      l = X[j*C];
+      r = X[j*C+1];
+      X[j*C] = MULT16_16_Q14(a1,l) + MULT16_16_Q14(a2,r);
+      X[j*C+1] = MULT16_16_Q14(a1,r) - MULT16_16_Q14(a2,l);
+   }
+}
+
 void stereo_decision(const CELTMode *m, celt_norm_t * restrict X, int *stereo_mode, int len)
 {
    int i;
@@ -561,19 +588,22 @@ void quant_bands_stereo(const CELTMode *m, celt_norm_t * restrict X, celt_norm_t
       if (b<0)
          b = 0;
       
+      qb = (b-2*(N-1)*(50-log2_frac(N,4)))/(32*(N-1));
+      if (qb > (b>>BITRES)-1)
+         qb = (b>>BITRES)-1;
+      if (qb<0)
+         qb = 0;
       
-      stereo_band_mix(m, X, bandE, stereo_mode, i, 1);
+      if (qb==0)
+         point_stereo_mix(m, X, bandE, i, 1);
+      else
+         stereo_band_mix(m, X, bandE, stereo_mode, i, 1);
       
       mid = renormalise_vector(X+C*eBands[i], Q15ONE, N, C);
       side = renormalise_vector(X+C*eBands[i]+1, Q15ONE, N, C);
       
       itheta = floor(.5+16384*0.63662*atan2(side,mid));
       
-      qb = (b-2*(N-1)*(50-log2_frac(N,4)))/(32*(N-1));
-      if (qb > (b>>BITRES)-1)
-         qb = (b>>BITRES)-1;
-      if (qb<0)
-         qb = 0;
       qalloc = log2_frac((1<<qb)+1,4);
       if (qb==0)
       {
