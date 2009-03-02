@@ -340,7 +340,7 @@ celt_word16_t renormalise_vector(celt_norm_t *X, celt_word16_t value, int N, int
 static void fold(const CELTMode *m, int N, celt_norm_t *Y, celt_norm_t * restrict P, int N0, int B)
 {
    int j;
-   const int C = 1;
+   const int C = CHANNELS(m);
    int id = N0 % (C*B);
    /* Here, we assume that id will never be greater than N0, i.e. that 
       no band is wider than N0. In the unlikely case it happens, we set
@@ -358,7 +358,7 @@ static void fold(const CELTMode *m, int N, celt_norm_t *Y, celt_norm_t * restric
 void intra_fold(const CELTMode *m, celt_norm_t * restrict x, int N, int K, celt_norm_t *Y, celt_norm_t * restrict P, int N0, int B)
 {
    celt_word16_t pred_gain;
-   const int C = 1;
+   const int C = CHANNELS(m);
 
    if (K==0)
       pred_gain = Q15ONE;

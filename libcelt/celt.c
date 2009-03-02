@@ -635,8 +635,8 @@ int celt_encode_float(CELTEncoder * restrict st, const celt_sig_t * pcm, celt_si
       if (st->pitch_available>0 && st->pitch_available<MAX_PERIOD)
         st->pitch_available+=st->frame_size;
 
-      if (C==2)
-         renormalise_bands(st->mode, X);
+      //if (C==2)
+      //   renormalise_bands(st->mode, X);
       /* Synthesis */
       denormalise_bands(st->mode, X, freq, bandE);
       
@@ -1049,10 +1049,8 @@ int celt_decode_float(CELTDecoder * restrict st, unsigned char *data, int len, c
    else
       unquant_bands_stereo(st->mode, X, P, has_pitch, gains, bandE, stereo_mode, pulses, shortBlocks, has_fold, len*8, &dec);
 
-   if (C==2)
-   {
-      renormalise_bands(st->mode, X);
-   }
+   //if (C==2)
+   //   renormalise_bands(st->mode, X);
    /* Synthesis */
    denormalise_bands(st->mode, X, freq, bandE);
 
