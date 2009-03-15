@@ -589,10 +589,8 @@ void quant_bands_stereo(const CELTMode *m, celt_norm_t * restrict X, celt_norm_t
             else
                pgains[pband] = 0;
          }
-         
-               //printf ("%d %f %f ", i, inner_prod(P+C*eBands[i], P+C*eBands[i], N), inner_prod(P+C*eBands[i]+N, P+C*eBands[i]+N, N));
-         
-                  /* If pitch isn't available, use intra-frame prediction */
+
+         /* If pitch isn't available, use intra-frame prediction */
          if ((eBands[i] >= m->pitchEnd && fold) || q1<=0)
          {
             intra_fold(m, X+C*eBands[i], eBands[i+1]-eBands[i], q1, norm, P+C*eBands[i], eBands[i], B);
@@ -601,7 +599,6 @@ void quant_bands_stereo(const CELTMode *m, celt_norm_t * restrict X, celt_norm_t
             deinterleave(P+C*eBands[i], C*N);
             for (j=C*eBands[i];j<C*eBands[i+1];j++)
                P[j] = MULT16_16_Q15(pgains[pband], P[j]);
-            //for (j=0;j<6;j++) printf ("%f ", P[j]); printf("E2\n");
          } else {
             for (j=C*eBands[i];j<C*eBands[i+1];j++)
                P[j] = 0;
@@ -615,9 +612,7 @@ void quant_bands_stereo(const CELTMode *m, celt_norm_t * restrict X, celt_norm_t
             for (j=C*eBands[i];j<C*eBands[i+1];j++)
                X[j] = P[j];
          }
-         
-                  //renormalise_vector(X+C*eBands[i], 0.707, N, 1);
-                  //renormalise_vector(X+C*eBands[i]+N, 0.707, N, 1);
+
          interleave(X+C*eBands[i], C*N);
          for (j=0;j<C*N;j++)
             norm[eBands[i]+j] = MULT16_16_Q15(n,X[C*eBands[i]+j]);
@@ -636,9 +631,11 @@ void quant_bands_stereo(const CELTMode *m, celt_norm_t * restrict X, celt_norm_t
       
       mid = renormalise_vector(X+C*eBands[i], Q15ONE, N, C);
       side = renormalise_vector(X+C*eBands[i]+1, Q15ONE, N, C);
-      
+#ifdef FIXED_POINT
+      itheta = MULT16_16_Q15(QCONST16(0.63662,15),celt_atan2p(side, mid));
+#else
       itheta = floor(.5+16384*0.63662*atan2(side,mid));
-      
+#endif
       qalloc = log2_frac((1<<qb)+1,4);
       if (qb==0)
       {
@@ -646,13 +643,9 @@ void quant_bands_stereo(const CELTMode *m, celt_norm_t * restrict X, celt_norm_t
       } else {
          int shift;
          shift = 14-qb;
-         //printf ("%d ", itheta);
          itheta = (itheta+(1<<shift>>1))>>shift;
-         //if (itheta > (1<<qb))
-         //   itheta = (1<<qb);
          ec_enc_uint(enc, itheta, (1<<qb)+1);
          itheta <<= shift;
-         //printf ("%d %d %d\n", itheta, shift, qb);
       }
       if (itheta == 0)
       {
@@ -675,7 +668,6 @@ void quant_bands_stereo(const CELTMode *m, celt_norm_t * restrict X, celt_norm_t
       if (mbits<0)
          mbits=0;
       sbits = b-qalloc-mbits;
-      //printf ("%d %d %d %d\n", b, mbits, sbits, qb);
       q1 = bits2pulses(m, BPbits[i], mbits);
       q2 = bits2pulses(m, BPbits[i], sbits);
       curr_bits = BPbits[i][q1]+BPbits[i][q2]+qalloc;
@@ -713,16 +705,11 @@ void quant_bands_stereo(const CELTMode *m, celt_norm_t * restrict X, celt_norm_t
             pgains[pband] = 0;
       }
       
-      //printf ("%d %f %f ", i, inner_prod(P+C*eBands[i], P+C*eBands[i], N), inner_prod(P+C*eBands[i]+N, P+C*eBands[i]+N, N));
 
       /* If pitch isn't available, use intra-frame prediction */
       if ((eBands[i] >= m->pitchEnd && fold) || (q1+q2)<=0)
       {
          intra_fold(m, X+C*eBands[i], eBands[i+1]-eBands[i], q1+q2, norm, P+C*eBands[i], eBands[i], B);
-         //for (j=0;j<N;j++)
-         //   P[C*eBands[i]+N+j] = 0;
-         //renormalise_vector(P+C*eBands[i], Q15ONE, N, C);
-         //renormalise_vector(P+C*eBands[i]+1, Q15ONE, N, C);
          if (qb==0)
             point_stereo_mix(m, P, bandE, i, 1);
          else
@@ -745,7 +732,6 @@ void quant_bands_stereo(const CELTMode *m, celt_norm_t * restrict X, celt_norm_t
          for (j=C*eBands[i];j<C*eBands[i+1];j++)
             P[j] = 0;
       }
-      //printf ("%d ", qb);
       deinterleave(X+C*eBands[i], C*N);
       if (q1 > 0)
          alg_quant(X+C*eBands[i], W+C*eBands[i], N, q1, P+C*eBands[i], enc);
@@ -781,7 +767,6 @@ void quant_bands_stereo(const CELTMode *m, celt_norm_t * restrict X, celt_norm_t
          norm[eBands[i]+j] = MULT16_16_Q15(n,X[C*eBands[i]+j]);
       }
    }
-   //printf ("\n");
    RESTORE_STACK;
 }
 
@@ -969,8 +954,6 @@ void unquant_bands_stereo(const CELTMode *m, celt_norm_t * restrict X, celt_norm
                pgains[pband] = 0;
          }
          
-               //printf ("%d %f %f ", i, inner_prod(P+C*eBands[i], P+C*eBands[i], N), inner_prod(P+C*eBands[i]+N, P+C*eBands[i]+N, N));
-         
          /* If pitch isn't available, use intra-frame prediction */
          if ((eBands[i] >= m->pitchEnd && fold) || q1<=0)
          {
@@ -980,7 +963,6 @@ void unquant_bands_stereo(const CELTMode *m, celt_norm_t * restrict X, celt_norm
             deinterleave(P+C*eBands[i], C*N);
             for (j=C*eBands[i];j<C*eBands[i+1];j++)
                P[j] = MULT16_16_Q15(pgains[pband], P[j]);
-            //for (j=0;j<6;j++) printf ("%f ", P[j]); printf("D2\n");
          } else {
             for (j=C*eBands[i];j<C*eBands[i+1];j++)
                P[j] = 0;
@@ -994,8 +976,6 @@ void unquant_bands_stereo(const CELTMode *m, celt_norm_t * restrict X, celt_norm
                X[j] = P[j];
          }
          
-                  //renormalise_vector(X+C*eBands[i], 0.707, N, 1);
-                  //renormalise_vector(X+C*eBands[i]+N, 0.707, N, 1);
          interleave(X+C*eBands[i], C*N);
          for (j=0;j<C*N;j++)
             norm[eBands[i]+j] = MULT16_16_Q15(n,X[C*eBands[i]+j]);
@@ -1038,7 +1018,6 @@ void unquant_bands_stereo(const CELTMode *m, celt_norm_t * restrict X, celt_norm
       if (mbits<0)
          mbits=0;
       sbits = b-qalloc-mbits;
-      //printf ("%d %d %d %d\n", b, mbits, sbits, qb);
       q1 = bits2pulses(m, BPbits[i], mbits);
       q2 = bits2pulses(m, BPbits[i], sbits);
       curr_bits = BPbits[i][q1]+BPbits[i][q2]+qalloc;
@@ -1075,8 +1054,6 @@ void unquant_bands_stereo(const CELTMode *m, celt_norm_t * restrict X, celt_norm
          else
             pgains[pband] = 0;
       }
-      
-      //printf ("%d %f %f ", i, inner_prod(P+C*eBands[i], P+C*eBands[i], N), inner_prod(P+C*eBands[i]+N, P+C*eBands[i]+N, N));
 
       /* If pitch isn't available, use intra-frame prediction */
       if ((eBands[i] >= m->pitchEnd && fold) || (q1+q2)<=0)
@@ -1087,10 +1064,6 @@ void unquant_bands_stereo(const CELTMode *m, celt_norm_t * restrict X, celt_norm
          else
             stereo_band_mix(m, P, bandE, stereo_mode, i, 1);
          deinterleave(P+C*eBands[i], C*N);
-         //for (j=0;j<N;j++)
-         //   P[C*eBands[i]+N+j] = 0;
-         /*for (j=C*eBands[i];j<C*eBands[i+1];j++)
-         P[j] = 0;*/
       } else if (pitch_used && eBands[i] < m->pitchEnd) {
          if (qb==0)
             point_stereo_mix(m, P, bandE, i, 1);
@@ -1105,7 +1078,6 @@ void unquant_bands_stereo(const CELTMode *m, celt_norm_t * restrict X, celt_norm
          for (j=C*eBands[i];j<C*eBands[i+1];j++)
             P[j] = 0;
       }
-      //printf ("%d ", qb);
       deinterleave(X+C*eBands[i], C*N);
       if (q1 > 0)
          alg_unquant(X+C*eBands[i], N, q1, P+C*eBands[i], dec);
@@ -1140,6 +1112,5 @@ void unquant_bands_stereo(const CELTMode *m, celt_norm_t * restrict X, celt_norm
          norm[eBands[i]+j] = MULT16_16_Q15(n,X[C*eBands[i]+j]);
       }
    }
-   //printf ("\n");
    RESTORE_STACK;
 }

@@ -285,6 +285,40 @@ static inline celt_word32_t celt_rcp(celt_word32_t x)
 
 #define celt_div(a,b) MULT32_32_Q31((celt_word32_t)(a),celt_rcp(b))
 
+
+#define M1 32767
+#define M2 -21
+#define M3 -11943
+#define M4 4936
+
+static inline celt_word16_t celt_atan01(celt_word16_t x)
+{
+   return MULT16_16_P15(x, ADD32(M1, MULT16_16_P15(x, ADD32(M2, MULT16_16_P15(x, ADD32(M3, MULT16_16_P15(M4, x)))))));
+}
+
+#undef M1
+#undef M2
+#undef M3
+#undef M4
+
+static inline celt_word16_t celt_atan2p(celt_word16_t y, celt_word16_t x)
+{
+   if (y < x)
+   {
+      celt_word32_t arg;
+      arg = celt_div(SHL32(EXTEND32(y),15),x);
+      if (arg >= 32767)
+         arg = 32767;
+      return SHR16(celt_atan01(EXTRACT16(arg)),1);
+   } else {
+      celt_word32_t arg;
+      arg = celt_div(SHL32(EXTEND32(x),15),y);
+      if (arg >= 32767)
+         arg = 32767;
+      return 25736-SHR16(celt_atan01(EXTRACT16(arg)),1);
+   }
+}
+
 #endif /* FIXED_POINT */
 
 
