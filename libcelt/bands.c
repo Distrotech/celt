@@ -198,7 +198,7 @@ void denormalise_bands(const CELTMode *m, const celt_norm_t * restrict X, celt_s
       for (i=0;i<m->nbEBands;i++)
       {
          int j;
-         celt_word32_t g = SHL32(bank[i*C+c],1);
+         celt_word32_t g = SHR32(bank[i*C+c],1);
          j=eBands[i]; do {
             freq[j*C+c] = SHL32(MULT16_32_Q15(X[j*C+c], g),2);
          } while (++j<eBands[i+1]);
@@ -397,35 +397,6 @@ void deinterleave(celt_norm_t *x, int N)
    RESTORE_STACK;
 }
 
-float inner_prod(float *x, float *y, int len)
-{
-   int i;
-   float sum=0;
-   for (i=0;i<len;i++)
-      sum += x[i]*y[i];
-   return sum;
-}
-void orthogonalize(float *mid, float *side, int len)
-{
-   float proj = 0;
-   int i;
-   for (i=0;i<len;i++)
-      proj += mid[i]*side[i];
-   //printf ("proj = %f (%d)\n", proj, len);
-   for (i=0;i<len;i++)
-      side[i] -= proj*mid[i];
-   if (0) {
-      float g;
-      g = 1.0-proj*proj;
-      if (g < 0.01)
-         g = 1;
-      else
-         g = 1/sqrt(g);
-      for (i=0;i<len;i++)
-         side[i] *= g;
-   }
-}
-
 /* Quantisation of the residual */
 void quant_bands(const CELTMode *m, celt_norm_t * restrict X, celt_norm_t *P, celt_mask_t *W, int pitch_used, celt_pgain_t *pgains, const celt_ener_t *bandE, const int *stereo_mode, int *pulses, int shortBlocks, int fold, int total_bits, ec_enc *enc)
 {
@@ -546,7 +517,7 @@ void quant_bands_stereo(const CELTMode *m, celt_norm_t * restrict X, celt_norm_t
    const celt_int16_t *pBands = m->pBands;
    int pband=-1;
    int B;
-   float mid, side;
+   celt_word16_t mid, side;
    SAVE_STACK;
 
    B = shortBlocks ? m->nbShortMdcts : 1;
@@ -789,14 +760,18 @@ void quant_bands_stereo(const CELTMode *m, celt_norm_t * restrict X, celt_norm_t
       /*   orthogonalize(X+C*eBands[i], X+C*eBands[i]+N, N);*/
 
 
+#ifdef FIXED_POINT
+      mid = imid;
+      side = iside;
+#else
       mid = (1./32768)*imid;
       side = (1./32768)*iside;
-      
+#endif
       for (j=0;j<N;j++)
-         X[C*eBands[i]+j] *= mid;
+         X[C*eBands[i]+j] = MULT16_16_Q15(X[C*eBands[i]+j], mid);
       for (j=0;j<N;j++)
-         X[C*eBands[i]+N+j] *= side;
-      
+         X[C*eBands[i]+N+j] = MULT16_16_Q15(X[C*eBands[i]+N+j], side);
+
       interleave(X+C*eBands[i], C*N);
 
       stereo_band_mix(m, X, bandE, stereo_mode, i, -1);
@@ -921,7 +896,7 @@ void unquant_bands_stereo(const CELTMode *m, celt_norm_t * restrict X, celt_norm
    const celt_int16_t *pBands = m->pBands;
    int pband=-1;
    int B;
-   float mid, side;
+   celt_word16_t mid, side;
    SAVE_STACK;
 
    B = shortBlocks ? m->nbShortMdcts : 1;
@@ -1144,13 +1119,17 @@ void unquant_bands_stereo(const CELTMode *m, celt_norm_t * restrict X, celt_norm
             X[j] = 0;
       /*orthogonalize(X+C*eBands[i], X+C*eBands[i]+N, N);*/
       
+#ifdef FIXED_POINT
+      mid = imid;
+      side = iside;
+#else
       mid = (1./32768)*imid;
       side = (1./32768)*iside;
-      
+#endif
       for (j=0;j<N;j++)
-         X[C*eBands[i]+j] *= mid;
+         X[C*eBands[i]+j] = MULT16_16_Q15(X[C*eBands[i]+j], mid);
       for (j=0;j<N;j++)
-         X[C*eBands[i]+N+j] *= side;
+         X[C*eBands[i]+N+j] = MULT16_16_Q15(X[C*eBands[i]+N+j], side);
       
       interleave(X+C*eBands[i], C*N);
 
