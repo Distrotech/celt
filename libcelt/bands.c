@@ -558,7 +558,7 @@ void quant_bands_stereo(const CELTMode *m, celt_norm_t * restrict X, celt_norm_t
       if (b<0)
          b = 0;
 
-      if (i<10) {
+      if (N<5) {
          
          q1 = bits2pulses(m, BPbits[i], b/2);
          curr_bits = 2*BPbits[i][q1];
@@ -618,7 +618,7 @@ void quant_bands_stereo(const CELTMode *m, celt_norm_t * restrict X, celt_norm_t
             norm[eBands[i]+j] = MULT16_16_Q15(n,X[C*eBands[i]+j]);
 
       } else {
-      qb = (b-2*(N-1)*(50-log2_frac(N,4)))/(32*(N-1));
+      qb = (b-2*(N-1)*(40-log2_frac(N,4)))/(32*(N-1));
       if (qb > (b>>BITRES)-1)
          qb = (b>>BITRES)-1;
       if (qb<0)
@@ -660,7 +660,7 @@ void quant_bands_stereo(const CELTMode *m, celt_norm_t * restrict X, celt_norm_t
       } else {
          imid = bitexact_cos(itheta);
          iside = bitexact_cos(16384-itheta);
-         delta = (N-1)*(log2_frac(iside,6)-log2_frac(imid,6))>>3;
+         delta = (N-1)*(log2_frac(iside,6)-log2_frac(imid,6))>>2;
       }
       mbits = (b-qalloc/2-delta)/2;
       if (mbits > b-qalloc)
@@ -922,7 +922,7 @@ void unquant_bands_stereo(const CELTMode *m, celt_norm_t * restrict X, celt_norm
       if (b<0)
          b = 0;
       
-      if (i<10) {
+      if (N<5) {
          
          q1 = bits2pulses(m, BPbits[i], b/2);
          curr_bits = 2*BPbits[i][q1];
@@ -982,7 +982,7 @@ void unquant_bands_stereo(const CELTMode *m, celt_norm_t * restrict X, celt_norm
 
       } else {
       
-      qb = (b-2*(N-1)*(50-log2_frac(N,4)))/(32*(N-1));
+      qb = (b-2*(N-1)*(40-log2_frac(N,4)))/(32*(N-1));
       if (qb > (b>>BITRES)-1)
          qb = (b>>BITRES)-1;
       if (qb<0)
@@ -1010,7 +1010,7 @@ void unquant_bands_stereo(const CELTMode *m, celt_norm_t * restrict X, celt_norm
       } else {
          imid = bitexact_cos(itheta);
          iside = bitexact_cos(16384-itheta);
-         delta = (N-1)*(log2_frac(iside,6)-log2_frac(imid,6))>>3;
+         delta = (N-1)*(log2_frac(iside,6)-log2_frac(imid,6))>>2;
       }
       mbits = (b-qalloc/2-delta)/2;
       if (mbits > b-qalloc)
