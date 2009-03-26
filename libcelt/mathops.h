@@ -82,7 +82,7 @@ static inline int find_max32(celt_word32_t *x, int len)
 }
 #endif
 
-#define FRAC_MUL16(a,b) ((16384+((int)(a)*(b)))>>15)
+#define FRAC_MUL16(a,b) ((16384+((celt_int32_t)(celt_int16_t)(a)*(celt_int16_t)(b)))>>15)
 static inline celt_int16_t bitexact_cos(celt_int16_t x)
 {
    celt_int32_t tmp;
