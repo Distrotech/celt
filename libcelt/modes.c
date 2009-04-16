@@ -52,7 +52,7 @@
 #endif
 
 
-int celt_mode_info(const CELTMode *mode, int request, celt_int32_t *value)
+int celt051_mode_info(const CELTMode *mode, int request, celt_int32_t *value)
 {
    switch (request)
    {
@@ -274,7 +274,7 @@ static void compute_allocation_table(CELTMode *mode, int res)
 
 #endif /* STATIC_MODES */
 
-CELTMode *celt_mode_create(celt_int32_t Fs, int channels, int frame_size, int *error)
+CELTMode *celt051_mode_create(celt_int32_t Fs, int channels, int frame_size, int *error)
 {
    int i;
 #ifdef STDIN_TUNING
@@ -415,7 +415,7 @@ CELTMode *celt_mode_create(celt_int32_t Fs, int channels, int frame_size, int *e
    return mode;
 }
 
-void celt_mode_destroy(CELTMode *mode)
+void celt051_mode_destroy(CELTMode *mode)
 {
 #ifndef STATIC_MODES
    int i;

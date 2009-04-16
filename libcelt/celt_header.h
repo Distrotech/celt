@@ -29,8 +29,8 @@
    SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#ifndef CELT_HEADER_H
-#define CELT_HEADER_H
+#ifndef CELT051_HEADER_H
+#define CELT051_HEADER_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -53,14 +53,14 @@ typedef struct {
    celt_int32_t overlap;           /**< Overlapping samples (per channel) */
    celt_int32_t bytes_per_packet;  /**< Number of bytes per compressed packet (0 if unknown) */
    celt_int32_t extra_headers;     /**< Number of additional headers that follow this header */
-} CELTHeader;
+} CELT051Header;
 
 /** Creates a basic header struct */
-EXPORT void celt_header_init(CELTHeader *header, const CELTMode *m);
+EXPORT void celt051_header_init(CELT051Header *header, const CELTMode *m);
 
-EXPORT int celt_header_to_packet(const CELTHeader *header, unsigned char *packet, celt_uint32_t size);
+EXPORT int celt051_header_to_packet(const CELT051Header *header, unsigned char *packet, celt_uint32_t size);
 
-EXPORT int celt_header_from_packet(const unsigned char *packet, celt_uint32_t size, CELTHeader *header);
+EXPORT int celt051_header_from_packet(const unsigned char *packet, celt_uint32_t size, CELT051Header *header);
 
 #ifdef __cplusplus
 }

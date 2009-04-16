@@ -47,7 +47,7 @@
 #include <string.h> /* memset() */
 
 #include "alsa_device.h"
-#include <celt.h>
+#include "celt.h"
 #include <speex/speex_echo.h>
 #include <speex/speex_jitter.h>
 
@@ -121,9 +121,9 @@ int main(int argc, char *argv[])
    /* Setup the encoder and decoder in wideband */
    CELTEncoder *enc_state;
    CELTDecoder *dec_state;
-   CELTMode *mode = celt_mode_create(48000, 2, 256, NULL);
-   enc_state = celt_encoder_create(mode);   
-   dec_state = celt_decoder_create(mode);   
+   CELTMode *mode = celt051_mode_create(48000, 2, 256, NULL);
+   enc_state = celt051_encoder_create(mode);   
+   dec_state = celt051_decoder_create(mode);   
    struct sched_param param;
    /*param.sched_priority = 40; */
    param.sched_priority = sched_get_priority_min(SCHED_FIFO);
@@ -189,7 +189,7 @@ int main(int argc, char *argv[])
             jitter_buffer_get(jitter, &packet, FRAME_SIZE, NULL);
             if (packet.len==0)
               packet.data=NULL;
-            celt_decode(dec_state, packet.data, packet.len, pcm);
+            celt051_decode(dec_state, packet.data, packet.len, pcm);
          } else {
             for (i=0;i<FRAME_SIZE;i++)
                pcm[i] = 0;
@@ -214,7 +214,7 @@ int main(int argc, char *argv[])
             pcm[i] = pcm2[i];
          
          /* Encode */
-         celt_encode(enc_state, pcm, NULL, outpacket+4, packetSize);
+         celt051_encode(enc_state, pcm, NULL, outpacket+4, packetSize);
          
          /* Pseudo header: four null bytes and a 32-bit timestamp */
          ((int*)outpacket)[0] = send_timestamp;

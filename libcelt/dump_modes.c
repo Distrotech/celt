@@ -284,7 +284,7 @@ int main(int argc, char **argv)
       Fs      = atoi(argv[3*i+1]);
       ch      = atoi(argv[3*i+2]);
       frame   = atoi(argv[3*i+3]);
-      m[i] = celt_mode_create(Fs, ch, frame, NULL);
+      m[i] = celt051_mode_create(Fs, ch, frame, NULL);
    }
    file = fopen("static_modes.c", "w");
    dump_modes(file, m, nb);
@@ -293,7 +293,7 @@ int main(int argc, char **argv)
    dump_header(file, m, nb);
    fclose(file);
    for (i=0;i<nb;i++)
-      celt_mode_destroy(m[i]);
+      celt051_mode_destroy(m[i]);
    free(m);
    return 0;
 }

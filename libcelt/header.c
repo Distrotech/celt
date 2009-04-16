@@ -47,7 +47,7 @@
    celt_int32_t nb_channels;
    celt_int32_t bytes_per_packet;
    celt_int32_t extra_headers;
-} CELTHeader;*/
+} CELT051Header;*/
 
 static  celt_uint32_t
 _le_32 (celt_uint32_t i)
@@ -62,12 +62,12 @@ _le_32 (celt_uint32_t i)
    return ret;
 }
 
-void celt_header_init(CELTHeader *header, const CELTMode *m)
+void celt051_header_init(CELT051Header *header, const CELTMode *m)
 {
    CELT_COPY(header->codec_id, "CELT    ", 8);
    CELT_COPY(header->codec_version, "experimental        ", 20);
 
-   celt_mode_info(m, CELT_GET_BITSTREAM_VERSION, &header->version_id);
+   celt051_mode_info(m, CELT_GET_BITSTREAM_VERSION, &header->version_id);
    header->header_size = 56;
    header->sample_rate = m->Fs;
    header->nb_channels = m->nbChannels;
@@ -77,7 +77,7 @@ void celt_header_init(CELTHeader *header, const CELTMode *m)
    header->extra_headers = 0;
 }
 
-int celt_header_to_packet(const CELTHeader *header, unsigned char *packet, celt_uint32_t size)
+int celt051_header_to_packet(const CELT051Header *header, unsigned char *packet, celt_uint32_t size)
 {
    celt_int32_t * h;
 
@@ -103,7 +103,7 @@ int celt_header_to_packet(const CELTHeader *header, unsigned char *packet, celt_
    return sizeof(*header);
 }
 
-int celt_header_from_packet(const unsigned char *packet, celt_uint32_t size, CELTHeader *header)
+int celt051_header_from_packet(const unsigned char *packet, celt_uint32_t size, CELT051Header *header)
 {
    CELT_COPY((unsigned char*)header, packet, sizeof(*header));
    return sizeof(*header);

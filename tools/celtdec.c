@@ -46,7 +46,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <celt.h>
+#include "celt.h"
 #include <ogg/ogg.h>
 
 #if defined WIN32 || defined _WIN32
@@ -81,7 +81,7 @@
 
 #include <string.h>
 #include "wav_io.h"
-#include <celt_header.h>
+#include "celt_header.h"
 
 #define MAX_FRAME_SIZE 2000
 
@@ -289,16 +289,16 @@ void version_short(void)
 static CELTDecoder *process_header(ogg_packet *op, celt_int32_t enh_enabled, celt_int32_t *frame_size, int *granule_frame_size, celt_int32_t *rate, int *nframes, int forceMode, int *channels, int *overlap, int *extra_headers, int quiet, CELTMode **mode)
 {
    CELTDecoder *st;
-   CELTHeader header;
+   CELT051Header header;
       
-   celt_header_from_packet(op->packet, op->bytes, &header);
+   celt051_header_from_packet(op->packet, op->bytes, &header);
 
    if (header.nb_channels>2 || header.nb_channels<1)
    {
       fprintf (stderr, "Unsupported number of channels: %d\n", header.nb_channels);
       return NULL;
    }
-   *mode = celt_mode_create(header.sample_rate, header.nb_channels, header.frame_size, NULL);
+   *mode = celt051_mode_create(header.sample_rate, header.nb_channels, header.frame_size, NULL);
    if (*mode == NULL)
    {
       fprintf (stderr, "Mode initialization failed.\n");
@@ -306,14 +306,14 @@ static CELTDecoder *process_header(ogg_packet *op, celt_int32_t enh_enabled, cel
    }
    *channels = header.nb_channels;
    *overlap=header.overlap;
-   st = celt_decoder_create(*mode);
+   st = celt051_decoder_create(*mode);
    if (!st)
    {
       fprintf (stderr, "Decoder initialization failed.\n");
       return NULL;
    }
    
-   celt_mode_info(*mode, CELT_GET_FRAME_SIZE, frame_size);
+   celt051_mode_info(*mode, CELT_GET_FRAME_SIZE, frame_size);
    *granule_frame_size = *frame_size;
 
    if (!*rate)
@@ -560,9 +560,9 @@ int main(int argc, char **argv)
                   int ret;
                   /*Decode frame*/
                   if (!lost)
-                     ret = celt_decode(st, (unsigned char*)op.packet, op.bytes, output);
+                     ret = celt051_decode(st, (unsigned char*)op.packet, op.bytes, output);
                   else
-                     ret = celt_decode(st, NULL, 0, output);
+                     ret = celt051_decode(st, NULL, 0, output);
 
                   /*for (i=0;i<frame_size*channels;i++)
                     printf ("%d\n", (int)output[i]);*/
@@ -644,8 +644,8 @@ int main(int argc, char **argv)
 
    if (st)
    {
-      celt_decoder_destroy(st);
-      celt_mode_destroy(mode);
+      celt051_decoder_destroy(st);
+      celt051_mode_destroy(mode);
    } else {
       fprintf (stderr, "This doesn't look like a CELT file\n");
    }

@@ -92,7 +92,7 @@ struct CELTEncoder {
 #endif
 };
 
-CELTEncoder *celt_encoder_create(const CELTMode *mode)
+CELTEncoder *celt051_encoder_create(const CELTMode *mode)
 {
    int N, C;
    CELTEncoder *st;
@@ -128,11 +128,11 @@ CELTEncoder *celt_encoder_create(const CELTMode *mode)
    return st;
 }
 
-void celt_encoder_destroy(CELTEncoder *st)
+void celt051_encoder_destroy(CELTEncoder *st)
 {
    if (st == NULL)
    {
-      celt_warning("NULL passed to celt_encoder_destroy");
+      celt_warning("NULL passed to celt051_encoder_destroy");
       return;
    }
    if (check_mode(st->mode) != CELT_OK)
@@ -366,10 +366,10 @@ static void compute_inv_mdcts(const CELTMode *mode, int shortBlocks, celt_sig_t 
 }
 
 #ifdef FIXED_POINT
-int celt_encode(CELTEncoder * restrict st, const celt_int16_t * pcm, celt_int16_t * optional_synthesis, unsigned char *compressed, int nbCompressedBytes)
+int celt051_encode(CELTEncoder * restrict st, const celt_int16_t * pcm, celt_int16_t * optional_synthesis, unsigned char *compressed, int nbCompressedBytes)
 {
 #else
-int celt_encode_float(CELTEncoder * restrict st, const celt_sig_t * pcm, celt_sig_t * optional_synthesis, unsigned char *compressed, int nbCompressedBytes)
+int celt051_encode_float(CELTEncoder * restrict st, const celt_sig_t * pcm, celt_sig_t * optional_synthesis, unsigned char *compressed, int nbCompressedBytes)
 {
 #endif
    int i, c, N, N4;
@@ -689,7 +689,7 @@ int celt_encode_float(CELTEncoder * restrict st, const celt_sig_t * pcm, celt_si
 
 #ifdef FIXED_POINT
 #ifndef DISABLE_FLOAT_API
-int celt_encode_float(CELTEncoder * restrict st, const float * pcm, float * optional_synthesis, unsigned char *compressed, int nbCompressedBytes)
+int celt051_encode_float(CELTEncoder * restrict st, const float * pcm, float * optional_synthesis, unsigned char *compressed, int nbCompressedBytes)
 {
    int j, ret;
    const int C = CHANNELS(st->mode);
@@ -702,11 +702,11 @@ int celt_encode_float(CELTEncoder * restrict st, const float * pcm, float * opti
      in[j] = FLOAT2INT16(pcm[j]);
 
    if (optional_synthesis != NULL) {
-     ret=celt_encode(st,in,in,compressed,nbCompressedBytes);
+     ret=celt051_encode(st,in,in,compressed,nbCompressedBytes);
       for (j=0;j<C*N;j++)
          optional_synthesis[j]=in[j]*(1/32768.);
    } else {
-     ret=celt_encode(st,in,NULL,compressed,nbCompressedBytes);
+     ret=celt051_encode(st,in,NULL,compressed,nbCompressedBytes);
    }
    RESTORE_STACK;
    return ret;
@@ -714,7 +714,7 @@ int celt_encode_float(CELTEncoder * restrict st, const float * pcm, float * opti
 }
 #endif /*DISABLE_FLOAT_API*/
 #else
-int celt_encode(CELTEncoder * restrict st, const celt_int16_t * pcm, celt_int16_t * optional_synthesis, unsigned char *compressed, int nbCompressedBytes)
+int celt051_encode(CELTEncoder * restrict st, const celt_int16_t * pcm, celt_int16_t * optional_synthesis, unsigned char *compressed, int nbCompressedBytes)
 {
    int j, ret;
    VARDECL(celt_sig_t, in);
@@ -727,18 +727,18 @@ int celt_encode(CELTEncoder * restrict st, const celt_int16_t * pcm, celt_int16_
    }
 
    if (optional_synthesis != NULL) {
-      ret = celt_encode_float(st,in,in,compressed,nbCompressedBytes);
+      ret = celt051_encode_float(st,in,in,compressed,nbCompressedBytes);
       for (j=0;j<C*N;j++)
          optional_synthesis[j] = FLOAT2INT16(in[j]);
    } else {
-      ret = celt_encode_float(st,in,NULL,compressed,nbCompressedBytes);
+      ret = celt051_encode_float(st,in,NULL,compressed,nbCompressedBytes);
    }
    RESTORE_STACK;
    return ret;
 }
 #endif
 
-int celt_encoder_ctl(CELTEncoder * restrict st, int request, ...)
+int celt051_encoder_ctl(CELTEncoder * restrict st, int request, ...)
 {
    va_list ap;
    va_start(ap, request);
@@ -811,7 +811,7 @@ struct CELTDecoder {
    int last_pitch_index;
 };
 
-CELTDecoder *celt_decoder_create(const CELTMode *mode)
+CELTDecoder *celt051_decoder_create(const CELTMode *mode)
 {
    int N, C;
    CELTDecoder *st;
@@ -838,11 +838,11 @@ CELTDecoder *celt_decoder_create(const CELTMode *mode)
    return st;
 }
 
-void celt_decoder_destroy(CELTDecoder *st)
+void celt051_decoder_destroy(CELTDecoder *st)
 {
    if (st == NULL)
    {
-      celt_warning("NULL passed to celt_encoder_destroy");
+      celt_warning("NULL passed to celt051_encoder_destroy");
       return;
    }
    if (check_mode(st->mode) != CELT_OK)
@@ -911,10 +911,10 @@ static void celt_decode_lost(CELTDecoder * restrict st, celt_word16_t * restrict
 }
 
 #ifdef FIXED_POINT
-int celt_decode(CELTDecoder * restrict st, unsigned char *data, int len, celt_int16_t * restrict pcm)
+int celt051_decode(CELTDecoder * restrict st, unsigned char *data, int len, celt_int16_t * restrict pcm)
 {
 #else
-int celt_decode_float(CELTDecoder * restrict st, unsigned char *data, int len, celt_sig_t * restrict pcm)
+int celt051_decode_float(CELTDecoder * restrict st, unsigned char *data, int len, celt_sig_t * restrict pcm)
 {
 #endif
    int i, c, N, N4;
@@ -1088,7 +1088,7 @@ int celt_decode_float(CELTDecoder * restrict st, unsigned char *data, int len, c
 
 #ifdef FIXED_POINT
 #ifndef DISABLE_FLOAT_API
-int celt_decode_float(CELTDecoder * restrict st, unsigned char *data, int len, float * restrict pcm)
+int celt051_decode_float(CELTDecoder * restrict st, unsigned char *data, int len, float * restrict pcm)
 {
    int j, ret;
    const int C = CHANNELS(st->mode);
@@ -1097,7 +1097,7 @@ int celt_decode_float(CELTDecoder * restrict st, unsigned char *data, int len, f
    SAVE_STACK;
    ALLOC(out, C*N, celt_int16_t);
 
-   ret=celt_decode(st, data, len, out);
+   ret=celt051_decode(st, data, len, out);
 
    for (j=0;j<C*N;j++)
      pcm[j]=out[j]*(1/32768.);
@@ -1106,7 +1106,7 @@ int celt_decode_float(CELTDecoder * restrict st, unsigned char *data, int len, f
 }
 #endif /*DISABLE_FLOAT_API*/
 #else
-int celt_decode(CELTDecoder * restrict st, unsigned char *data, int len, celt_int16_t * restrict pcm)
+int celt051_decode(CELTDecoder * restrict st, unsigned char *data, int len, celt_int16_t * restrict pcm)
 {
    int j, ret;
    VARDECL(celt_sig_t, out);
@@ -1115,7 +1115,7 @@ int celt_decode(CELTDecoder * restrict st, unsigned char *data, int len, celt_in
    SAVE_STACK;
    ALLOC(out, C*N, celt_sig_t);
 
-   ret=celt_decode_float(st, data, len, out);
+   ret=celt051_decode_float(st, data, len, out);
 
    for (j=0;j<C*N;j++)
      pcm[j] = FLOAT2INT16 (out[j]);

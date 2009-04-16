@@ -34,14 +34,17 @@
    SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#ifndef CELT_H
-#define CELT_H
+#ifndef CELT051_H
+#define CELT051_H
 
 #include "celt_types.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+#ifndef CELT_H
+#define CELT_H
 
 #if defined(__GNUC__) && defined(CELT_BUILD)
 #define EXPORT __attribute__ ((visibility ("default")))
@@ -103,6 +106,7 @@ typedef struct CELTDecoder CELTDecoder;
     otherwise the quality will be very bad */
 typedef struct CELTMode CELTMode;
 
+#endif
 
 /** \defgroup codec Encoding and decoding */
 /*  @{ */
@@ -119,16 +123,16 @@ typedef struct CELTMode CELTMode;
  @param error Returned error code (if NULL, no error will be returned)
  @return A newly created mode
 */
-EXPORT CELTMode *celt_mode_create(celt_int32_t Fs, int channels, int frame_size, int *error);
+EXPORT CELTMode *celt051_mode_create(celt_int32_t Fs, int channels, int frame_size, int *error);
 
 /** Destroys a mode struct. Only call this after all encoders and decoders
     using this mode are destroyed as well.
  @param mode Mode to be destroyed
 */
-EXPORT void celt_mode_destroy(CELTMode *mode);
+EXPORT void celt051_mode_destroy(CELTMode *mode);
 
 /** Query information from a mode */
-EXPORT int celt_mode_info(const CELTMode *mode, int request, celt_int32_t *value);
+EXPORT int celt051_mode_info(const CELTMode *mode, int request, celt_int32_t *value);
 
 /* Encoder stuff */
 
@@ -139,12 +143,12 @@ EXPORT int celt_mode_info(const CELTMode *mode, int request, celt_int32_t *value
              (must be the same characteristics as used for the decoder)
  @return Newly created encoder state.
 */
-EXPORT CELTEncoder *celt_encoder_create(const CELTMode *mode);
+EXPORT CELTEncoder *celt051_encoder_create(const CELTMode *mode);
 
 /** Destroys a an encoder state.
  @param st Encoder state to be destroyed
  */
-EXPORT void celt_encoder_destroy(CELTEncoder *st);
+EXPORT void celt051_encoder_destroy(CELTEncoder *st);
 
 /** Encodes a frame of audio.
  @param st Encoder state
@@ -162,7 +166,7 @@ EXPORT void celt_encoder_destroy(CELTEncoder *st);
  *       has occured (see error codes). It is IMPORTANT that the length returned
  *       be somehow transmitted to the decoder. Otherwise, no decoding is possible.
 */
-EXPORT int celt_encode_float(CELTEncoder *st, const float *pcm, float *optional_synthesis, unsigned char *compressed, int nbCompressedBytes);
+EXPORT int celt051_encode_float(CELTEncoder *st, const float *pcm, float *optional_synthesis, unsigned char *compressed, int nbCompressedBytes);
 /** Encodes a frame of audio.
  @param st Encoder state
  @param pcm PCM audio in signed 16-bit format (native endian). There must be 
@@ -179,7 +183,7 @@ EXPORT int celt_encode_float(CELTEncoder *st, const float *pcm, float *optional_
  *       has occured (see error codes). It is IMPORTANT that the length returned
  *       be somehow transmitted to the decoder. Otherwise, no decoding is possible.
  */
-EXPORT int celt_encode(CELTEncoder *st, const celt_int16_t *pcm, celt_int16_t *optional_synthesis, unsigned char *compressed, int nbCompressedBytes);
+EXPORT int celt051_encode(CELTEncoder *st, const celt_int16_t *pcm, celt_int16_t *optional_synthesis, unsigned char *compressed, int nbCompressedBytes);
 
 /** Query and set encoder parameters 
  @param st Encoder state
@@ -187,7 +191,7 @@ EXPORT int celt_encode(CELTEncoder *st, const celt_int16_t *pcm, celt_int16_t *o
  @param value Pointer to a 32-bit int value
  @return Error code
 */
-EXPORT int celt_encoder_ctl(CELTEncoder * st, int request, ...);
+EXPORT int celt051_encoder_ctl(CELTEncoder * st, int request, ...);
 
 /* Decoder stuff */
 
@@ -198,12 +202,12 @@ EXPORT int celt_encoder_ctl(CELTEncoder * st, int request, ...);
              stream (must be the same characteristics as used for the encoder)
  @return Newly created decoder state.
  */
-EXPORT CELTDecoder *celt_decoder_create(const CELTMode *mode);
+EXPORT CELTDecoder *celt051_decoder_create(const CELTMode *mode);
 
 /** Destroys a a decoder state.
  @param st Decoder state to be destroyed
  */
-EXPORT void celt_decoder_destroy(CELTDecoder *st);
+EXPORT void celt051_decoder_destroy(CELTDecoder *st);
 
 /** Decodes a frame of audio.
  @param st Decoder state
@@ -214,7 +218,7 @@ EXPORT void celt_decoder_destroy(CELTDecoder *st);
             returned here in float format. 
  @return Error code.
    */
-EXPORT int celt_decode_float(CELTDecoder *st, unsigned char *data, int len, float *pcm);
+EXPORT int celt051_decode_float(CELTDecoder *st, unsigned char *data, int len, float *pcm);
 /** Decodes a frame of audio.
  @param st Decoder state
  @param data Compressed data produced by an encoder
@@ -224,7 +228,7 @@ EXPORT int celt_decode_float(CELTDecoder *st, unsigned char *data, int len, floa
             returned here in 16-bit PCM format (native endian). 
  @return Error code.
  */
-EXPORT int celt_decode(CELTDecoder *st, unsigned char *data, int len, celt_int16_t *pcm);
+EXPORT int celt051_decode(CELTDecoder *st, unsigned char *data, int len, celt_int16_t *pcm);
 
 /*  @} */
 
@@ -233,4 +237,4 @@ EXPORT int celt_decode(CELTDecoder *st, unsigned char *data, int len, celt_int16
 }
 #endif
 
-#endif /*CELT_H */
+#endif /*CELT051_H */

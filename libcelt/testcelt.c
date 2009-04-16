@@ -69,8 +69,8 @@ int main(int argc, char *argv[])
    rate = atoi(argv[1]);
    channels = atoi(argv[2]);
    frame_size = atoi(argv[3]);
-   mode = celt_mode_create(rate, channels, frame_size, NULL);
-   celt_mode_info(mode, CELT_GET_LOOKAHEAD, &skip);
+   mode = celt051_mode_create(rate, channels, frame_size, NULL);
+   celt051_mode_info(mode, CELT_GET_LOOKAHEAD, &skip);
    
    if (mode == NULL)
    {
@@ -101,17 +101,17 @@ int main(int argc, char *argv[])
    }
    
    /* Use mode4 for stereo and don't forget to change the value of CHANNEL above */
-   enc = celt_encoder_create(mode);
-   dec = celt_decoder_create(mode);
+   enc = celt051_encoder_create(mode);
+   dec = celt051_decoder_create(mode);
 
    if (argc>7)
    {
       complexity=atoi(argv[5]);
-      celt_encoder_ctl(enc,CELT_SET_COMPLEXITY(complexity));
+      celt051_encoder_ctl(enc,CELT_SET_COMPLEXITY(complexity));
    }
    
-   celt_mode_info(mode, CELT_GET_FRAME_SIZE, &frame_size);
-   celt_mode_info(mode, CELT_GET_NB_CHANNELS, &channels);
+   celt051_mode_info(mode, CELT_GET_FRAME_SIZE, &frame_size);
+   celt051_mode_info(mode, CELT_GET_NB_CHANNELS, &channels);
    in = (celt_int16_t*)malloc(frame_size*channels*sizeof(celt_int16_t));
    out = (celt_int16_t*)malloc(frame_size*channels*sizeof(celt_int16_t));
    while (!feof(fin))
@@ -119,10 +119,10 @@ int main(int argc, char *argv[])
       fread(in, sizeof(short), frame_size*channels, fin);
       if (feof(fin))
          break;
-      len = celt_encode(enc, in, in, data, bytes_per_packet);
+      len = celt051_encode(enc, in, in, data, bytes_per_packet);
       if (len <= 0)
       {
-         fprintf (stderr, "celt_encode() returned %d\n", len);
+         fprintf (stderr, "celt051_encode() returned %d\n", len);
          return 1;
       }
       /* This is for simulating bit errors */
@@ -151,9 +151,9 @@ int main(int argc, char *argv[])
       /* This is to simulate packet loss */
       if (argc==10 && rand()%1000<atoi(argv[argc-3]))
       /*if (errors && (errors%2==0))*/
-         celt_decode(dec, NULL, len, out);
+         celt051_decode(dec, NULL, len, out);
       else
-         celt_decode(dec, data, len, out);
+         celt051_decode(dec, data, len, out);
 #else
       for (i=0;i<frame_size*channels;i++)
          out[i] = in[i];
@@ -171,8 +171,8 @@ int main(int argc, char *argv[])
    }
    PRINT_MIPS(stderr);
    
-   celt_encoder_destroy(enc);
-   celt_decoder_destroy(dec);
+   celt051_encoder_destroy(enc);
+   celt051_decoder_destroy(dec);
    fclose(fin);
    fclose(fout);
 #if !(defined (FIXED_POINT) && defined(STATIC_MODES))
@@ -186,7 +186,7 @@ int main(int argc, char *argv[])
       fprintf (stderr, "Encoder matches decoder!!\n");
    }
 #endif
-   celt_mode_destroy(mode);
+   celt051_mode_destroy(mode);
    free(in);
    free(out);
    return 0;

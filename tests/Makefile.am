@@ -16,4 +16,4 @@ mdct_test_SOURCES = mdct-test.c
 mathops_test_SOURCES = mathops-test.c
 
 AM_LDFLAGS = -static
-LDADD = $(top_builddir)/libcelt/libcelt.la
+LDADD = $(top_builddir)/libcelt/libcelt@PACKAGE_APPEND@.la

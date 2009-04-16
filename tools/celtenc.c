@@ -164,7 +164,7 @@ void add_fishead_packet (ogg_stream_state *os) {
 /*
  * Adds the fishead packets in the skeleton output stream along with the e_o_s packet
  */
-void add_fisbone_packet (ogg_stream_state *os, celt_int32_t serialno, CELTHeader *header) {
+void add_fisbone_packet (ogg_stream_state *os, celt_int32_t serialno, CELT051Header *header) {
 
    fisbone_packet fp;
 
@@ -280,7 +280,7 @@ int main(int argc, char **argv)
    ogg_packet 		 op;
    int bytes_written=0, ret, result;
    int id=-1;
-   CELTHeader header;
+   CELT051Header header;
    char vendor_string[64];
    char *comments;
    int comments_length;
@@ -462,14 +462,14 @@ int main(int argc, char **argv)
       return 1;
    }
 
-   mode = celt_mode_create(rate, chan, 256, NULL);
+   mode = celt051_mode_create(rate, chan, 256, NULL);
    if (!mode)
       return 1;
-   celt_mode_info(mode, CELT_GET_FRAME_SIZE, &frame_size);
+   celt051_mode_info(mode, CELT_GET_FRAME_SIZE, &frame_size);
    
    bytes_per_packet = (bitrate*1000*frame_size/rate+4)/8;
    
-   celt_header_init(&header, mode);
+   celt051_header_init(&header, mode);
    header.nb_channels = chan;
 
    {
@@ -484,10 +484,10 @@ int main(int argc, char **argv)
      header.rate, mode->bitrate, mode->modeName);*/
 
    /*Initialize CELT encoder*/
-   st = celt_encoder_create(mode);
+   st = celt051_encoder_create(mode);
 
    if (complexity!=-127) {
-     if (celt_encoder_ctl(st, CELT_SET_COMPLEXITY(complexity)) != CELT_OK)
+     if (celt051_encoder_ctl(st, CELT_SET_COMPLEXITY(complexity)) != CELT_OK)
      {
         fprintf (stderr, "Only complexity 0 through 10 is supported\n");
         return 1;
@@ -529,7 +529,7 @@ int main(int argc, char **argv)
    /*Write header*/
    {
       unsigned char header_data[100];
-      int packet_size = celt_header_to_packet(&header, header_data, 100);
+      int packet_size = celt051_header_to_packet(&header, header_data, 100);
       op.packet = header_data;
       op.bytes = packet_size;
       op.b_o_s = 1;
@@ -613,7 +613,7 @@ int main(int argc, char **argv)
       id++;
       /*Encode current frame*/
 
-      nbBytes = celt_encode(st, input, NULL, bits, bytes_per_packet);
+      nbBytes = celt051_encode(st, input, NULL, bits, bytes_per_packet);
       if (nbBytes<0)
       {
          fprintf(stderr, "Got error %d while encoding. Aborting.\n", nbBytes);
@@ -678,8 +678,8 @@ int main(int argc, char **argv)
          bytes_written += ret;
    }
 
-   celt_encoder_destroy(st);
-   celt_mode_destroy(mode);
+   celt051_encoder_destroy(st);
+   celt051_mode_destroy(mode);
    ogg_stream_clear(&os);
 
    if (close_in)

@@ -12,10 +12,10 @@ EXTRA_DIST = getopt_win.h getopt.c getopt1.c wave_out.c wave_out.h skeleton.h
 include_HEADERS = 
 noinst_HEADERS = wav_io.h
 
-bin_PROGRAMS = celtenc celtdec
+bin_PROGRAMS = celtenc@PACKAGE_APPEND@ celtdec@PACKAGE_APPEND@
 
-celtenc_SOURCES = celtenc.c wav_io.c skeleton.c
-celtenc_LDADD = $(top_builddir)/libcelt/libcelt.la $(OGG_LIBS)
+celtenc@PACKAGE_APPEND@_SOURCES = celtenc.c wav_io.c skeleton.c
+celtenc@PACKAGE_APPEND@_LDADD = $(top_builddir)/libcelt/libcelt@PACKAGE_APPEND@.la $(OGG_LIBS)
 
-celtdec_SOURCES = celtdec.c wav_io.c
-celtdec_LDADD = $(top_builddir)/libcelt/libcelt.la $(OGG_LIBS)
+celtdec@PACKAGE_APPEND@_SOURCES = celtdec.c wav_io.c
+celtdec@PACKAGE_APPEND@_LDADD = $(top_builddir)/libcelt/libcelt@PACKAGE_APPEND@.la $(OGG_LIBS)
