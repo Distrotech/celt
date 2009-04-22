@@ -388,6 +388,11 @@ int main(int argc, char **argv)
          break;
       }
    }
+
+   fprintf(stderr,"\nWARNING: This encoder is a CELT *PRERELEASE*. It produces streams that are\n"
+           "         not decodable by ANY OTHER VERSION.  These streams will NOT be\n"
+           "         supported or decodable by any future CELT release.\n\n");
+
    if (argc-optind!=2)
    {
       usage();
