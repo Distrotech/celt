@@ -36,6 +36,7 @@
 #define CELT_C
 
 #include "os_support.h"
+#include "float_cast.h"
 #include "mdct.h"
 #include <math.h>
 #include "celt.h"
@@ -50,7 +51,6 @@
 #include "rate.h"
 #include "stack_alloc.h"
 #include "mathops.h"
-#include "float_cast.h"
 #include <stdarg.h>
 
 static const celt_word16_t preemph = QCONST16(0.8f,15);
