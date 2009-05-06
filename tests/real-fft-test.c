@@ -2,7 +2,8 @@
 #include "config.h"
 #endif
 
-#include "kiss_fftr.h"
+#include "kiss_fftr.c"
+#include "kiss_fft.c"
 #include "_kiss_fft_guts.h"
 #include <stdio.h>
 #include <string.h>

@@ -3,7 +3,11 @@
 #endif
 
 #include <stdio.h>
-#include "cwrs.h"
+#include "entdec.c"
+#include "entenc.c"
+#include "rangeenc.c"
+#include "rangedec.c"
+#include "cwrs.c"
 #include <string.h>
 #define NMAX (10)
 #define MMAX (9)

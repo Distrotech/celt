@@ -4,8 +4,12 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include "laplace.h"
+#include "laplace.c"
 #include "stack_alloc.h"
+#include "entenc.c"
+#include "entdec.c"
+#include "rangeenc.c"
+#include "rangedec.c"
 
 int main(void)
 {

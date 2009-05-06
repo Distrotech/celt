@@ -6,8 +6,11 @@
 #include <stdio.h>
 #include <math.h>
 #include "entcode.h"
-#include "entenc.h"
-#include "entdec.h"
+#include "entenc.c"
+#include "entdec.c"
+#include "rangeenc.c"
+#include "rangedec.c"
+#include "cwrs.c"
 
 #ifndef M_LOG2E
 # define M_LOG2E    1.4426950408889634074

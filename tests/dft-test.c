@@ -3,7 +3,7 @@
 #endif
 
 #include <stdio.h>
-#include "kiss_fft.h"
+#include "kiss_fft.c"
 
 #ifndef M_PI
 #define M_PI 3.141592653

@@ -3,8 +3,9 @@
 #endif
 
 #include <stdio.h>
-#include "mdct.h"
+#include "mdct.c"
 #include "stack_alloc.h"
+#include "kiss_fft.c"
 
 #ifndef M_PI
 #define M_PI 3.141592653
