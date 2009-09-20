@@ -524,6 +524,7 @@ int celt_encode_float(CELTEncoder * restrict st, const celt_sig_t * pcm, celt_si
    int mdct_weight_pos=0;
    int gain_id=0;
    int norm_rate;
+   float tilt[30];
    SAVE_STACK;
 
    if (check_encoder(st) != CELT_OK)
@@ -695,6 +696,10 @@ int celt_encode_float(CELTEncoder * restrict st, const celt_sig_t * pcm, celt_si
    
    /* Band normalisation */
    normalise_bands(st->mode, freq, X, bandE);
+   bands_tilt(st->mode, X, tilt);
+   bands_tilt_compensate(st->mode, X, tilt, 1);
+   //bands_tilt(st->mode, X, tilt);
+   //printf ("\n");
    if (!shortBlocks && !folding_decision(st->mode, X, &st->tonal_average, &st->fold_decision))
       has_fold = 0;
 
@@ -787,6 +792,7 @@ int celt_encode_float(CELTEncoder * restrict st, const celt_sig_t * pcm, celt_si
       if (st->pitch_available>0 && st->pitch_available<MAX_PERIOD)
         st->pitch_available+=st->frame_size;
 
+      bands_tilt_compensate(st->mode, X, tilt, -1);
       /* Synthesis */
       denormalise_bands(st->mode, X, freq, bandE);
       

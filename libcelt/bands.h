@@ -57,6 +57,9 @@ void normalise_bands(const CELTMode *m, const celt_sig_t * restrict freq, celt_n
 
 void renormalise_bands(const CELTMode *m, celt_norm_t * restrict X);
 
+void bands_tilt(const CELTMode *m, const celt_norm_t * restrict X, float *tilt);
+void bands_tilt_compensate(const CELTMode *m, celt_norm_t * restrict X, float *tilt, int dir);
+
 /** Denormalise each band of X to restore full amplitude
  * @param m Mode data 
  * @param X Spectrum (returned de-normalised)

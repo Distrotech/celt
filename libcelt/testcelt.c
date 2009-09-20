@@ -151,7 +151,7 @@ int main(int argc, char *argv[])
       else if (errors%2 == 1)
          data[rand()%8] ^= 1<<rand()%8;
 #endif
-#if 1 /* Set to zero to use the encoder's output instead */
+#if 0 /* Set to zero to use the encoder's output instead */
       /* This is to simulate packet loss */
       if (argc==9 && rand()%1000<atoi(argv[argc-3]))
       /*if (errors && (errors%2==0))*/

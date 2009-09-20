@@ -192,6 +192,78 @@ void renormalise_bands(const CELTMode *m, celt_norm_t * restrict X)
 }
 #endif /* DISABLE_STEREO */
 
+void bands_tilt(const CELTMode *m, const celt_norm_t * restrict X, float *tilt)
+{
+   int i, c;
+   const celt_int16_t *eBands = m->eBands;
+   const int C = CHANNELS(m);
+   for (c=0;c<C;c++)
+   {
+      i=0; do {
+         int j;
+         float lo=0.1,hi=0.1;
+         int N = eBands[i+1]-eBands[i];
+         for (j=eBands[i];j<eBands[i]+N/2;j++)
+         {
+            lo += X[j]*X[j];
+            hi += X[j+N/2]*X[j+N/2];
+         }
+         tilt[i] = lo/hi;
+         //tilt[i] = 1;
+         //j = eBands[i];
+         //tilt[i] = (X[j]*X[j]+.001)/(X[j+1]*X[j+1]+.001);
+         //printf ("%f %f %f ", X[j], X[j+1], tilt[i]);
+         //printf ("%f ", tilt[i]);
+      } while (++i<m->nbEBands);
+   }
+   //printf ("\n");
+}
+
+void bands_tilt_compensate(const CELTMode *m, celt_norm_t * restrict X, float *tilt, const int dir)
+{
+   int i, c;
+   const short *eBands = m->eBands;
+   const int C = CHANNELS(m);
+   for (c=0;c<C;c++)
+   {
+      i=10; do {
+         int j, d;
+         float g;
+         int N = eBands[i+1]-eBands[i];
+         d = dir;
+         if (tilt[i]>1)
+         {
+            g = pow(tilt[i], -.25/N);
+            d = -dir;
+         } else {
+            g = pow(tilt[i], .25/N);
+            d = dir;
+         }
+         //printf ("%f ", g);
+         if (d > 0)
+         {
+            float gg=1;
+            //fprintf (stderr, "%d %d %p %p\n", i, sizeof(*eBands), eBands+i, eBands+i+1);
+            for (j=eBands[i];j<eBands[i+1];j++)
+            {
+               X[j]*=gg;
+               gg *= g;
+            }
+         } else {
+            float gg=1;
+            for (j=eBands[i+1]-1;j>=eBands[i];j--)
+            {
+               X[j]*=gg;
+               gg *= g;
+            }
+            renormalise_vector(X+eBands[i], 1, eBands[i+1]-eBands[i], C);
+         }
+         //X[eBands[i]+1] *= g;
+      } while (++i<m->nbEBands);
+   }
+   //exit(1);
+}
+
 /* De-normalise the energy to produce the synthesis from the unit-energy bands */
 void denormalise_bands(const CELTMode *m, const celt_norm_t * restrict X, celt_sig_t * restrict freq, const celt_ener_t *bank)
 {
