@@ -77,6 +77,9 @@ void apply_new_pitch(const CELTMode *m, celt_sig_t *X, const celt_sig_t *P, int 
  */
 int compute_pitch_gain(const CELTMode *m, const celt_norm_t *X, const celt_norm_t *P, celt_pgain_t *gains);
 
+void recombine_decisions(const CELTMode *m, celt_sig_t *X, int *flags);
+void recombine_bands(const CELTMode *m, celt_sig_t *X, int dir, int *flags);
+
 int folding_decision(const CELTMode *m, celt_norm_t *X, celt_word16_t *average, int *last_decision);
 
 /** Quantisation/encoding of the residual spectrum

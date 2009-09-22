@@ -302,6 +302,65 @@ void apply_new_pitch(const CELTMode *m, celt_sig_t *X, const celt_sig_t *P, int 
    }
 }
 
+void recombine_decisions(const CELTMode *m, celt_sig_t *X, int *flags)
+{
+   int i, c, N;
+   const celt_int16_t *eBands = m->eBands;
+   const int C = CHANNELS(m);
+   N = FRAMESIZE(m);
+   const celt_word16_t f = QCONST16(0.7071068f,16);
+   for (c=0;c<C;c++)
+   {
+      /* FIXME: For frame sizes with more than 2 MDCTs, apply a DCT-IV or something similar */
+      for (i=0;i<m->nbEBands;i++)
+      {
+         int j;
+         celt_word32_t sum1=0, sum2=0;
+         for (j=eBands[i];j<eBands[i+1];j+=2)
+         {
+            celt_norm_t x1, x2;
+            x1 = X[j*C+c];
+            x2 = X[(j+1)*C+c];
+            sum1 += x1*x1;
+            sum2 += x2*x2;
+         }
+         if ((.01+sum2)/(.01+sum1) < 2)
+            flags[i] = 1;
+         else
+            flags[i] = 0;
+         //printf ("%f ", (.01+sum2)/(.01+sum1));
+      }
+   }
+   //printf ("\n");
+}
+
+void recombine_bands(const CELTMode *m, celt_sig_t *X, int dir, int *flags)
+{
+   //return;
+   int i, c, N;
+   const celt_int16_t *eBands = m->eBands;
+   const int C = CHANNELS(m);
+   N = FRAMESIZE(m);
+   const celt_word16_t f = QCONST16(0.7071068f,16);
+   for (c=0;c<C;c++)
+   {
+      for (i=0;i<m->nbEBands;i++)
+      {
+         int j;
+         if (flags[i]==0)
+            continue;
+         for (j=eBands[i];j<eBands[i+1];j+=2)
+         {
+            celt_norm_t x1, x2;
+            x1 = X[j*C+c];
+            x2 = X[(j+1)*C+c];
+            X[j*C+c] = MULT16_16_Q15(f,x1) + MULT16_16_Q15(f,x2);
+            X[(j+1)*C+c] = MULT16_16_Q15(f,x1) + MULT16_16_Q15(-f,x2);
+         }
+      }
+   }
+}
+
 #ifndef DISABLE_STEREO
 
 static void stereo_band_mix(const CELTMode *m, celt_norm_t *X, const celt_ener_t *bank, int stereo_mode, int bandID, int dir)
