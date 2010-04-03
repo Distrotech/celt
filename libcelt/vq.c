@@ -88,6 +88,8 @@ static void exp_rotation(celt_norm *X, int len, int dir, int stride, int K)
    int istride[MAX_LEVELS];
    celt_word16 c, s;
 
+   if (K >= len)
+      return;
    do {
       istride[N] = stride;
       stride *= 2;
@@ -97,10 +99,12 @@ static void exp_rotation(celt_norm *X, int len, int dir, int stride, int K)
    gain = celt_div((celt_word32)MULT16_16(Q15_ONE,len),(celt_word32)(3+len+4*K));
    /* FIXME: Make that HALF16 instead of HALF32 */
    theta = HALF32(MULT16_16_Q15(gain,gain));
+   if (K==1)
+      theta = .25;
    c = celt_cos_norm(EXTEND32(theta));
    s = celt_cos_norm(EXTEND32(SUB16(Q15ONE,theta))); /*  sin(theta) */
 
-   if (dir > 0)
+   if (dir < 0)
    {
       for (i=0;i<N;i++)
          frac_hadamard1(X, len, istride[i], c, s);
