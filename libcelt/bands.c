@@ -446,7 +446,7 @@ int folding_decision(const CELTMode *m, celt_norm *X, celt_word16 *average, int 
    *average = EXTRACT16(ratio);
    return *last_decision;
 }
-
+extern float saving;
 /* Quantisation of the residual */
 void quant_bands(const CELTMode *m, int start, celt_norm * restrict X, const celt_ener *bandE, int *pulses, int shortBlocks, int fold, int resynth, int total_bits, int encode, void *enc_dec)
 {
@@ -456,12 +456,13 @@ void quant_bands(const CELTMode *m, int start, celt_norm * restrict X, const cel
    VARDECL(celt_norm, _norm);
    int B;
    SAVE_STACK;
-
+saving = 0;
    B = shortBlocks ? m->nbShortMdcts : 1;
    ALLOC(_norm, eBands[m->nbEBands+1], celt_norm);
    norm = _norm;
 
    balance = 0;
+   int curr_balance, curr_bits, old_tell=0;
    for (i=start;i<m->nbEBands;i++)
    {
       int tell;
@@ -469,7 +470,6 @@ void quant_bands(const CELTMode *m, int start, celt_norm * restrict X, const cel
       int q;
       const celt_int16 * const *BPbits;
       
-      int curr_balance, curr_bits;
       
       N = eBands[i+1]-eBands[i];
       BPbits = m->bits;
@@ -478,6 +478,8 @@ void quant_bands(const CELTMode *m, int start, celt_norm * restrict X, const cel
          tell = ec_enc_tell(enc_dec, BITRES);
       else
          tell = ec_dec_tell(enc_dec, BITRES);
+      //if (old_tell && encode)
+      //   printf ("%d ", curr_bits - (tell-old_tell));
       if (i != start)
          balance -= tell;
       remaining_bits = (total_bits<<BITRES)-tell-1;
@@ -496,7 +498,7 @@ void quant_bands(const CELTMode *m, int start, celt_norm * restrict X, const cel
          remaining_bits -= curr_bits;
       }
       balance += pulses[i] + tell;
-      
+      old_tell = tell;
 
       if (q > 0)
       {
@@ -506,6 +508,7 @@ void quant_bands(const CELTMode *m, int start, celt_norm * restrict X, const cel
          else
             alg_unquant(X+eBands[i], eBands[i+1]-eBands[i], q, spread, enc_dec);
       } else {
+         //printf ("%d\n", i);
          if (resynth)
             intra_fold(m, start, eBands[i+1]-eBands[i], norm, X+eBands[i], eBands[i], B);
       }
@@ -516,8 +519,13 @@ void quant_bands(const CELTMode *m, int start, celt_norm * restrict X, const cel
          for (j=eBands[i];j<eBands[i+1];j++)
             norm[j] = MULT16_16_Q15(n,X[j]);
       }
+      //if (encode && i==0)
+      //   printf ("%d %d   ", remaining_bits, (total_bits<<BITRES)-ec_enc_tell(enc_dec, BITRES)-1);
    }
    RESTORE_STACK;
+   //printf ("\n");
+   //if (encode)
+   //   printf ("%f\n", saving);
 }
 
 #ifndef DISABLE_STEREO

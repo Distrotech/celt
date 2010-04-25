@@ -846,6 +846,74 @@ static inline void encode_pulses32(int _n,int _k,const int *_y,ec_enc *_enc){
   }
 }
 
+celt_int16 normal_pdf[32] =
+   {2048, 2032, 1985, 1909, 1807, 1685, 1546, 1397,
+    1242, 1088,  938,  796,  665,  547,  443,  353,
+     277,  214,  163,  122,   90,   65,   47,   33,
+      23,   16,   10,    7,    4,    3,    2,    1};
+
+/*         4096, 4064, 3970, 3818, 3615, 3369, 3092, 2793,
+    2484, 2175, 1875, 1592, 1330, 1094,  886,  706,
+     554,  428,  326,  244,  180,  131,   93,   66,
+      46,   31,   21,   14,    9,    6,    4,    2};
+*/
+void build_split_cdf(int K, int N, celt_uint16 *cdf)
+{
+   int offset;
+   int i, j;
+   int left, right;
+   int base=1;
+#if 1
+   offset = floor(.5+sqrt(8*8*256/(K+K*K/N)));
+   if (offset<1)
+      offset = 1;
+#else
+   offset = 1;
+   while ((offset+1)*(offset+1)*K < 180*8*8)
+      offset++;
+#endif
+   //printf ("%d %d\n", K, offset);
+   left = K/2;
+   right = (K+1)/2;
+   /*if (K&0x1)
+      j = offset/2;
+   else*/
+      j=0;
+
+   base = 20;
+   if (N<=8)
+      base=1;
+   else if (N<=16)
+      base=1;
+   else if (N<=32)
+      base=1;
+   else if (N<=48)
+      base=10;
+   for (i=0;i<=K/2;i++)
+   {
+      cdf[right+i] = cdf[left-i] = normal_pdf[j]/8+base;
+      //printf ("%d %d\n", j, offset);
+      j=i*offset/8;
+      if (j>=31)
+         j=31;
+   }
+   float tmp = cdf[right];
+   /*for (i=0;i<=K;i++)
+      printf ("%d ", cdf[i]);
+   printf("\n");*/
+   for (i=1;i<=K;i++)
+      cdf[i] += cdf[i-1];
+//printf ("%f ", log2(tmp/cdf[K])+ log2(K+1));
+   //printf ("%d\n", cdf[K]);
+   /*for (i=0;i<=K;i++)
+      printf ("%d ", cdf[i]);
+   printf("\n");*/
+   /*exit(0);*/
+   /*if (N<K)
+      for (i=0;i<=K;i++)
+         cdf[i] = i+1;*/
+}
+float saving;
 void encode_pulses(int *_y, int N, int K, ec_enc *enc)
 {
    if (K==0) {
@@ -859,7 +927,18 @@ void encode_pulses(int *_y, int N, int K, ec_enc *enc)
      split = (N+1)/2;
      for (i=0;i<split;i++)
         count += abs(_y[i]);
-     ec_enc_uint(enc,count,K+1);
+     if (1) {
+        ec_enc_uint(enc,count,K+1);
+     } else {
+        celt_uint16 cdf[K+1];
+        build_split_cdf(K, N, cdf);
+        //printf ("enc %d\n", count);
+        ec_encode(enc, count==0? 0 : cdf[count-1], cdf[count], cdf[K]);
+        saving += log2((cdf[count]-(count==0? 0 : cdf[count-1]))*1./cdf[K])+log2(K+1);
+        //float tmp = log2((cdf[count]-(count==0? 0 : cdf[count-1]))*1./cdf[K])+log2(K+1);
+        //printf ("(%d %d %f) ", count, K, tmp);
+        //ec_encode(enc,count,count+1,K+1);
+     }
      encode_pulses(_y, split, count, enc);
      encode_pulses(_y+split, N-split, K-count, enc);
    }
@@ -899,7 +978,26 @@ void decode_pulses(int *_y, int N, int K, ec_dec *dec)
       decode_pulses32(N, K, _y, dec);
    } else {
      int split;
-     int count = ec_dec_uint(dec,K+1);
+     int count;
+     if (1) {
+        count = ec_dec_uint(dec,K+1);
+     }else{
+        int i;
+        celt_uint16 cdf[K+1];
+        int fm;
+        build_split_cdf(K, N, cdf);
+        fm = ec_decode(dec, cdf[K]);
+        i=0;
+        while (fm >= cdf[i] && i<K)
+           i++;
+        count = i;
+        //printf ("decoded %d to %d\n", fm, count);
+        //printf ("dec %d\n", count);
+        ec_dec_update(dec, i==0? 0 : cdf[i-1], cdf[i], cdf[K]);
+        //printf ("%f ", log2((cdf[i]-(i==0? 0 : cdf[i-1]))/cdf[K])+log2(K+1)  );
+        //count=ec_decode(dec,K+1);
+        //ec_dec_update(dec,count,count+1,K+1);
+     }
      split = (N+1)/2;
      decode_pulses(_y, split, count, dec);
      decode_pulses(_y+split, N-split, K-count, dec);
