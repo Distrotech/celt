@@ -445,6 +445,7 @@ static void quant_band(int encode, const CELTMode *m, int i, celt_norm *X, celt_
       Y = X+N;
       split = 1;
       LM -= 1;
+      spread = (spread+1)>>1;
    }
 
    if (split)
@@ -480,7 +481,8 @@ static void quant_band(int encode, const CELTMode *m, int i, celt_norm *X, celt_
          itheta = floor(.5f+16384*0.63662f*atan2(side,mid));
 #endif
       }
-
+      //if (encode && spread>1)
+      //   printf ("%d %d\n", itheta, LM);
       qalloc = log2_frac((1<<qb)+1,BITRES);
       if (qb==0)
       {
@@ -496,7 +498,7 @@ static void quant_band(int encode, const CELTMode *m, int i, celt_norm *X, celt_
          if (encode)
          {
             itheta = (itheta+(1<<shift>>1))>>shift;
-            if (stereo || qb>9)
+            if (stereo || qb>9 || spread>1)
                ec_enc_uint(ec, itheta, (1<<qb)+1);
             else {
                int j;
@@ -515,7 +517,7 @@ static void quant_band(int encode, const CELTMode *m, int i, celt_norm *X, celt_
                ec_encode(ec, fl, fl+fs, ft);
             }
          } else {
-            if (stereo || qb>9)
+            if (stereo || qb>9 || spread>1)
                itheta = ec_dec_uint((ec_dec*)ec, (1<<qb)+1);
             else {
                int j, fm;
@@ -626,6 +628,8 @@ static void quant_band(int encode, const CELTMode *m, int i, celt_norm *X, celt_
       } else
       {
          /* "Normal" split code */
+         if (spread>1)
+            delta /= 2;
          mbits = (b-qalloc/2-delta)/2;
          if (mbits > b-qalloc)
             mbits = b-qalloc;
@@ -737,8 +741,51 @@ void quant_all_bands(int encode, const CELTMode *m, int start, celt_norm *_X, ce
       if (b<0)
          b = 0;
 
-      quant_band(encode, m, i, X, Y, N, b, spread, norm+M*eBands[start], resynth, ec, &remaining_bits, LM, norm+M*eBands[i], bandE);
+#if 1
+      if (B>1)
+      {
+         int j, k;
+         celt_norm tmp[N];
+         for (k=0;k<B;k++)
+            for (j=0;j<N/B;j++)
+               tmp[k*N/B+j] = X[j*B+k];
+         for (j=0;j<N;j++)
+            X[j] = tmp[j];
 
+         for (k=0;k<B;k++)
+            for (j=0;j<N/B;j++)
+               tmp[k*N/B+j] = norm[M*eBands[start]+j*B+k];
+         for (j=0;j<N;j++)
+            norm[M*eBands[start]+j] = tmp[j];
+
+      }
+#endif
+      quant_band(encode, m, i, X, Y, N, b, spread, norm+M*eBands[start], resynth, ec, &remaining_bits, LM, norm+M*eBands[i], bandE);
+#if 1
+      if (resynth && B>1)
+      {
+         int j, k;
+         celt_norm tmp[N];
+         for (k=0;k<B;k++)
+            for (j=0;j<N/B;j++)
+               tmp[j*B+k] = X[k*N/B+j];
+         for (j=0;j<N;j++)
+            X[j] = tmp[j];
+
+         for (k=0;k<B;k++)
+            for (j=0;j<N/B;j++)
+               tmp[j*B+k] = norm[M*eBands[start]+k*N/B+j];
+         for (j=0;j<N;j++)
+            norm[M*eBands[start]+j] = tmp[j];
+
+         for (k=0;k<B;k++)
+            for (j=0;j<N/B;j++)
+               tmp[j*B+k] = norm[M*eBands[i]+k*N/B+j];
+         for (j=0;j<N;j++)
+            norm[M*eBands[i]+j] = tmp[j];
+
+      }
+#endif
       balance += pulses[i] + tell;
 
       if (resynth && _Y != NULL)

@@ -309,9 +309,9 @@ static int transient_analysis(const celt_word32 * restrict in, int len, int C,
       ratio = 1000;
    ratio *= ratio;
 
-   if (ratio > 2048)
+   /*if (ratio > 2048)
       *transient_shift = 3;
-   else
+   else*/
       *transient_shift = 0;
    
    *transient_time = n;
@@ -722,7 +722,7 @@ int celt_encode_resynthesis_float(CELTEncoder * restrict st, const celt_sig * pc
       st->delayedIntra = 0;
 
    NN = M*st->mode->eBands[st->mode->nbEBands];
-   if (shortBlocks && !transient_shift) 
+   /*if (shortBlocks && !transient_shift)
    {
       celt_word32 sum[8]={1,1,1,1,1,1,1,1};
       int m;
@@ -766,7 +766,7 @@ int celt_encode_resynthesis_float(CELTEncoder * restrict st, const celt_sig * pc
 #endif
       if (mdct_weight_shift)
          mdct_shape(st->mode, X, mdct_weight_pos+1, M, N, mdct_weight_shift, C, 0, M);
-   }
+   }*/
 
 
    encode_flags(&enc, intra_ener, has_pitch, shortBlocks, has_fold);

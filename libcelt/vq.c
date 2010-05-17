@@ -77,6 +77,37 @@ static void exp_rotation(celt_norm *X, int len, int dir, int stride, int K)
    celt_word16 c, s;
    celt_word16 gain, theta;
    int stride2=0;
+//return;
+   int B = stride;
+   int N=len;
+#if 0
+   if (B>1)
+   {
+      int j, k;
+      celt_norm tmp[N];
+      for (k=0;k<B;k++)
+         for (j=0;j<N/B;j++)
+            tmp[j*B+k] = X[k*N/B+j];
+      for (j=0;j<N;j++)
+         X[j] = tmp[j];
+   }
+#endif
+#if 0
+   return ;
+   if (stride>1)
+   {
+      printf ("%d\n", stride);
+      int i;
+      for (i=0;i<stride;i++)
+         exp_rotation(X+i*len/stride, len/stride, dir, 1, K);
+   }
+#endif
+   /*if (B>1)
+   {
+      X += 5*len/stride;
+      len/=stride;
+      stride = 1;
+   }*/
    /*int i;
    if (len>=30)
    {
@@ -111,9 +142,26 @@ static void exp_rotation(celt_norm *X, int len, int dir, int stride, int K)
          I _think_ it is bit-exact */
       while ((stride2*stride2+stride2)*stride + (stride>>2) < len)
          stride2++;
-      stride2 *= stride;
+      //stride2 *= stride;
    }
 #endif
+#if 1
+   int i;
+   len /= stride;
+   for (i=0;i<stride;i++)
+   {
+      if (dir < 0)
+      {
+         if (stride2)
+            exp_rotation1(X+i*len, len, dir, stride2, s, c);
+         exp_rotation1(X+i*len, len, dir, 1, c, s);
+      } else {
+         exp_rotation1(X+i*len, len, dir, 1, c, s);
+         if (stride2)
+            exp_rotation1(X+i*len, len, dir, stride2, s, c);
+      }
+   }
+#else
    if (dir < 0)
    {
       if (stride2)
@@ -124,7 +172,7 @@ static void exp_rotation(celt_norm *X, int len, int dir, int stride, int K)
       if (stride2)
          exp_rotation1(X, len, dir, stride2, s, c);
    }
-
+#endif
    /*if (len>=30)
    {
       for (i=0;i<len;i++)
@@ -132,6 +180,18 @@ static void exp_rotation(celt_norm *X, int len, int dir, int stride, int K)
       printf ("\n");
       exit(0);
    }*/
+#if 0
+   if (B>1)
+   {
+      int j, k;
+      celt_norm tmp[N];
+      for (k=0;k<B;k++)
+         for (j=0;j<N/B;j++)
+            tmp[k*N/B+j] = X[j*B+k];
+      for (j=0;j<N;j++)
+         X[j] = tmp[j];
+   }
+#endif
 }
 
 /** Takes the pitch vector and the decoded residual vector, computes the gain
