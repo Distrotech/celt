@@ -481,8 +481,8 @@ static void quant_band(int encode, const CELTMode *m, int i, celt_norm *X, celt_
          itheta = floor(.5f+16384*0.63662f*atan2(side,mid));
 #endif
       }
-      //if (encode && spread>1)
-      //   printf ("%d %d\n", itheta, LM);
+      /*if (encode && spread>1)
+         printf ("%d %d\n", itheta, LM);*/
       qalloc = log2_frac((1<<qb)+1,BITRES);
       if (qb==0)
       {
@@ -690,6 +690,38 @@ static void quant_band(int encode, const CELTMode *m, int i, celt_norm *X, celt_
    }
 }
 
+static void interleave_vector(celt_norm *X, int N0, int stride)
+{
+   int i,j;
+   VARDECL(celt_norm, tmp);
+   int N;
+   SAVE_STACK;
+   N = N0*stride;
+   ALLOC(tmp, N, celt_norm);
+   for (i=0;i<stride;i++)
+      for (j=0;j<N0;j++)
+         tmp[j*stride+i] = X[i*N0+j];
+   for (j=0;j<N;j++)
+      X[j] = tmp[j];
+   RESTORE_STACK;
+}
+
+static void deinterleave_vector(celt_norm *X, int N0, int stride)
+{
+   int i,j;
+   VARDECL(celt_norm, tmp);
+   int N;
+   SAVE_STACK;
+   N = N0*stride;
+   ALLOC(tmp, N, celt_norm);
+   for (i=0;i<stride;i++)
+      for (j=0;j<N0;j++)
+         tmp[i*N0+j] = X[j*stride+i];
+   for (j=0;j<N;j++)
+      X[j] = tmp[j];
+   RESTORE_STACK;
+}
+
 void quant_all_bands(int encode, const CELTMode *m, int start, celt_norm *_X, celt_norm *_Y, const celt_ener *bandE, int *pulses, int shortBlocks, int fold, int resynth, int total_bits, ec_enc *ec, int LM)
 {
    int i, remaining_bits, balance;
@@ -715,7 +747,7 @@ void quant_all_bands(int encode, const CELTMode *m, int start, celt_norm *_X, ce
    {
       int tell;
       int b;
-      int N;
+      int N, N0;
       int curr_balance;
       celt_norm * restrict X, * restrict Y;
       
@@ -724,7 +756,8 @@ void quant_all_bands(int encode, const CELTMode *m, int start, celt_norm *_X, ce
          Y = _Y+M*eBands[i];
       else
          Y = NULL;
-      N = M*eBands[i+1]-M*eBands[i];
+      N0 = eBands[i+1]-eBands[i];
+      N = M*N0;
       if (encode)
          tell = ec_enc_tell(ec, BITRES);
       else
@@ -744,46 +777,17 @@ void quant_all_bands(int encode, const CELTMode *m, int start, celt_norm *_X, ce
 #if 1
       if (B>1)
       {
-         int j, k;
-         celt_norm tmp[N];
-         for (k=0;k<B;k++)
-            for (j=0;j<N/B;j++)
-               tmp[k*N/B+j] = X[j*B+k];
-         for (j=0;j<N;j++)
-            X[j] = tmp[j];
-
-         for (k=0;k<B;k++)
-            for (j=0;j<N/B;j++)
-               tmp[k*N/B+j] = norm[M*eBands[start]+j*B+k];
-         for (j=0;j<N;j++)
-            norm[M*eBands[start]+j] = tmp[j];
-
+         deinterleave_vector(X, N0, B);
+         deinterleave_vector(norm+M*eBands[start], N0, B);
       }
 #endif
       quant_band(encode, m, i, X, Y, N, b, spread, norm+M*eBands[start], resynth, ec, &remaining_bits, LM, norm+M*eBands[i], bandE);
 #if 1
       if (resynth && B>1)
       {
-         int j, k;
-         celt_norm tmp[N];
-         for (k=0;k<B;k++)
-            for (j=0;j<N/B;j++)
-               tmp[j*B+k] = X[k*N/B+j];
-         for (j=0;j<N;j++)
-            X[j] = tmp[j];
-
-         for (k=0;k<B;k++)
-            for (j=0;j<N/B;j++)
-               tmp[j*B+k] = norm[M*eBands[start]+k*N/B+j];
-         for (j=0;j<N;j++)
-            norm[M*eBands[start]+j] = tmp[j];
-
-         for (k=0;k<B;k++)
-            for (j=0;j<N/B;j++)
-               tmp[j*B+k] = norm[M*eBands[i]+k*N/B+j];
-         for (j=0;j<N;j++)
-            norm[M*eBands[i]+j] = tmp[j];
-
+         interleave_vector(X, N0, B);
+         interleave_vector(norm+M*eBands[start], N0, B);
+         interleave_vector(norm+M*eBands[i], N0, B);
       }
 #endif
       balance += pulses[i] + tell;
