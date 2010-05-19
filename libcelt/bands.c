@@ -789,7 +789,7 @@ void quant_all_bands(int encode, const CELTMode *m, int start, celt_norm *_X, ce
       {
          interleave_vector(X, N0, B);
          if (Y)
-            deinterleave_vector(Y, N0, B);
+            interleave_vector(Y, N0, B);
          interleave_vector(norm+M*eBands[start], N0, B);
          interleave_vector(norm+M*eBands[i], N0, B);
       }
