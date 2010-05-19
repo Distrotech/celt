@@ -628,7 +628,7 @@ static void quant_band(int encode, const CELTMode *m, int i, celt_norm *X, celt_
       } else
       {
          /* "Normal" split code */
-         if (spread>1)
+         if (spread>1 && !stereo)
             delta /= 2;
          mbits = (b-qalloc/2-delta)/2;
          if (mbits > b-qalloc)
@@ -778,6 +778,8 @@ void quant_all_bands(int encode, const CELTMode *m, int start, celt_norm *_X, ce
       if (B>1)
       {
          deinterleave_vector(X, N0, B);
+         if (Y)
+            deinterleave_vector(Y, N0, B);
          deinterleave_vector(norm+M*eBands[start], N0, B);
       }
 #endif
@@ -786,6 +788,8 @@ void quant_all_bands(int encode, const CELTMode *m, int start, celt_norm *_X, ce
       if (resynth && B>1)
       {
          interleave_vector(X, N0, B);
+         if (Y)
+            deinterleave_vector(Y, N0, B);
          interleave_vector(norm+M*eBands[start], N0, B);
          interleave_vector(norm+M*eBands[i], N0, B);
       }
