@@ -445,6 +445,7 @@ static void quant_band(int encode, const CELTMode *m, int i, celt_norm *X, celt_
       Y = X+N;
       split = 1;
       LM -= 1;
+      spread = (spread+1)>>1;
    }
 
    if (split)
@@ -495,7 +496,7 @@ static void quant_band(int encode, const CELTMode *m, int i, celt_norm *X, celt_
             first stereo split but a triangular one for the rest. */
          if (encode)
             itheta = (itheta+(1<<shift>>1))>>shift;
-         if (stereo || qb>9)
+         if (stereo || qb>9 || spread>1)
          {
             if (encode)
                ec_enc_uint(ec, itheta, (1<<qb)+1);
@@ -629,6 +630,8 @@ static void quant_band(int encode, const CELTMode *m, int i, celt_norm *X, celt_
       } else
       {
          /* "Normal" split code */
+         if (spread>1 && !stereo)
+            delta /= 2;
          mbits = (b-qalloc/2-delta)/2;
          if (mbits > b-qalloc)
             mbits = b-qalloc;
@@ -689,6 +692,38 @@ static void quant_band(int encode, const CELTMode *m, int i, celt_norm *X, celt_
    }
 }
 
+static void interleave_vector(celt_norm *X, int N0, int stride)
+{
+   int i,j;
+   VARDECL(celt_norm, tmp);
+   int N;
+   SAVE_STACK;
+   N = N0*stride;
+   ALLOC(tmp, N, celt_norm);
+   for (i=0;i<stride;i++)
+      for (j=0;j<N0;j++)
+         tmp[j*stride+i] = X[i*N0+j];
+   for (j=0;j<N;j++)
+      X[j] = tmp[j];
+   RESTORE_STACK;
+}
+
+static void deinterleave_vector(celt_norm *X, int N0, int stride)
+{
+   int i,j;
+   VARDECL(celt_norm, tmp);
+   int N;
+   SAVE_STACK;
+   N = N0*stride;
+   ALLOC(tmp, N, celt_norm);
+   for (i=0;i<stride;i++)
+      for (j=0;j<N0;j++)
+         tmp[i*N0+j] = X[j*stride+i];
+   for (j=0;j<N;j++)
+      X[j] = tmp[j];
+   RESTORE_STACK;
+}
+
 void quant_all_bands(int encode, const CELTMode *m, int start, celt_norm *_X, celt_norm *_Y, const celt_ener *bandE, int *pulses, int shortBlocks, int fold, int resynth, int total_bits, ec_enc *ec, int LM)
 {
    int i, remaining_bits, balance;
@@ -714,7 +749,7 @@ void quant_all_bands(int encode, const CELTMode *m, int start, celt_norm *_X, ce
    {
       int tell;
       int b;
-      int N;
+      int N, N0;
       int curr_balance;
       celt_norm * restrict X, * restrict Y;
       
@@ -723,7 +758,8 @@ void quant_all_bands(int encode, const CELTMode *m, int start, celt_norm *_X, ce
          Y = _Y+M*eBands[i];
       else
          Y = NULL;
-      N = M*eBands[i+1]-M*eBands[i];
+      N0 = eBands[i+1]-eBands[i];
+      N = M*N0;
       if (encode)
          tell = ec_enc_tell(ec, BITRES);
       else
@@ -740,8 +776,26 @@ void quant_all_bands(int encode, const CELTMode *m, int start, celt_norm *_X, ce
       if (b<0)
          b = 0;
 
+#if 1
+      if (B>1)
+      {
+         deinterleave_vector(X, N0, B);
+         if (Y)
+            deinterleave_vector(Y, N0, B);
+         deinterleave_vector(norm+M*eBands[start], N0, B);
+      }
+#endif
       quant_band(encode, m, i, X, Y, N, b, spread, norm+M*eBands[start], resynth, ec, &remaining_bits, LM, norm+M*eBands[i], bandE);
-
+#if 1
+      if (resynth && B>1)
+      {
+         interleave_vector(X, N0, B);
+         if (Y)
+            interleave_vector(Y, N0, B);
+         interleave_vector(norm+M*eBands[start], N0, B);
+         interleave_vector(norm+M*eBands[i], N0, B);
+      }
+#endif
       balance += pulses[i] + tell;
 
       if (resynth && _Y != NULL)
