@@ -724,6 +724,19 @@ static void deinterleave_vector(celt_norm *X, int N0, int stride)
    RESTORE_STACK;
 }
 
+static void haar1(celt_norm *X, int N0, int stride)
+{
+   int i, j;
+   N0 >>= 1;
+   for (i=0;i<stride;i++)
+      for (j=0;j<N0;j++)
+      {
+         celt_norm tmp = X[stride*2*j+i];
+         X[stride*2*j+i] = .7070678*(X[stride*2*j+i] + X[stride*(2*j+1)+i]);
+         X[stride*(2*j+1)+i] = .7070678*(tmp - X[stride*(2*j+1)+i]);
+      }
+}
+
 void quant_all_bands(int encode, const CELTMode *m, int start, celt_norm *_X, celt_norm *_Y, const celt_ener *bandE, int *pulses, int shortBlocks, int fold, int resynth, int total_bits, ec_enc *ec, int LM)
 {
    int i, remaining_bits, balance;
@@ -752,6 +765,8 @@ void quant_all_bands(int encode, const CELTMode *m, int start, celt_norm *_X, ce
       int N, N0;
       int curr_balance;
       celt_norm * restrict X, * restrict Y;
+      celt_norm *norm_in, *norm_out;
+      int tdiv;
       
       X = _X+M*eBands[i];
       if (_Y!=NULL)
@@ -776,24 +791,41 @@ void quant_all_bands(int encode, const CELTMode *m, int start, celt_norm *_X, ce
       if (b<0)
          b = 0;
 
+      if (B>1 && N0%2==0)
+         tdiv=2;
+      else
+         tdiv=1;
+      norm_in = norm+M*eBands[i]-N;
+      norm_out = norm+M*eBands[i];
 #if 1
       if (B>1)
       {
-         deinterleave_vector(X, N0, B);
+         if (tdiv==2) haar1(X, N0, B);
+         deinterleave_vector(X, N0/tdiv, tdiv*B);
          if (Y)
-            deinterleave_vector(Y, N0, B);
-         deinterleave_vector(norm+M*eBands[start], N0, B);
+         {
+            if (tdiv==2) haar1(Y, N0, B);
+            deinterleave_vector(Y, N0/tdiv, tdiv*B);
+         }
+         if (tdiv==2) haar1(norm_in, N0, B);
+         deinterleave_vector(norm_in, N0/tdiv, B*tdiv);
       }
 #endif
-      quant_band(encode, m, i, X, Y, N, b, spread, norm+M*eBands[start], resynth, ec, &remaining_bits, LM, norm+M*eBands[i], bandE);
+      quant_band(encode, m, i, X, Y, N, b, spread*tdiv, norm_in, resynth, ec, &remaining_bits, LM, norm_out, bandE);
 #if 1
       if (resynth && B>1)
       {
-         interleave_vector(X, N0, B);
+         interleave_vector(X, N0/tdiv, B*tdiv);
+         if (tdiv==2) haar1(X, N0, B);
          if (Y)
-            interleave_vector(Y, N0, B);
-         interleave_vector(norm+M*eBands[start], N0, B);
-         interleave_vector(norm+M*eBands[i], N0, B);
+         {
+            interleave_vector(Y, N0/tdiv, B*tdiv);
+            deinterleave_vector(Y, N0/tdiv, tdiv*B);
+         }
+         interleave_vector(norm_in, N0/tdiv, B*tdiv);
+         if (tdiv==2) haar1(norm_in, N0, B);
+         interleave_vector(norm_out, N0/tdiv, B*tdiv);
+         if (tdiv==2) haar1(norm_out, N0, B);
       }
 #endif
       balance += pulses[i] + tell;
