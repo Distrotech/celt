@@ -464,6 +464,8 @@ static void haar1(celt_norm *X, int N0, int stride)
       }
 }
 
+extern int tf_res[100];
+
 /* This function is responsible for encoding and decoding a band for both
    the mono and stereo case. Even in the mono case, it can split the band
    in two and transmit the energy difference with the two half-bands. It
@@ -483,6 +485,21 @@ static void quant_band(int encode, const CELTMode *m, int i, celt_norm *X, celt_
    int time_divide=0;
    int recombine=0;
    int tf_change=-1;
+
+   if (tf_res[i] == -1)
+   {
+      if (spread > 1)
+         tf_change = -1;
+      else
+         tf_change = -2;
+   } else if (tf_res[i] == 1)
+   {
+      if (spread > 1)
+         tf_change = 2;
+      else
+         tf_change = 0;
+   } else
+      tf_change = 0;
 
    if (spread)
       N_B /= spread;
@@ -538,7 +555,7 @@ static void quant_band(int encode, const CELTMode *m, int i, celt_norm *X, celt_
    }
 
    /* Increasing the time resolution */
-   if (!stereo && spread>1 && level==0)
+   if (!stereo && (spread>1 || tf_change<0) && level==0)
    {
       while ((N_B&1) == 0 && tf_change<0 && spread <= (1<<LM))
       {

@@ -306,9 +306,9 @@ static int transient_analysis(const celt_word32 * restrict in, int len, int C,
       ratio = 1000;
    ratio *= ratio;
 
-   if (ratio > 2048)
+   /*if (ratio > 2048)
       *transient_shift = 3;
-   else
+   else*/
       *transient_shift = 0;
    
    *transient_time = n;
@@ -541,6 +541,7 @@ static void mdct_shape(const CELTMode *mode, celt_norm *X, int start,
       renormalise_bands(mode, X, C, M);
 }
 
+int tf_res[100]={0};
 #ifdef FIXED_POINT
 int celt_encode_with_ec(CELTEncoder * restrict st, const celt_int16 * pcm, celt_int16 * optional_resynthesis, int frame_size, unsigned char *compressed, int nbCompressedBytes, ec_enc *enc)
 {
@@ -710,6 +711,29 @@ int celt_encode_with_ec_float(CELTEncoder * restrict st, const celt_sig * pcm, c
    for (i=0;i<st->mode->nbEBands*C;i++)
       bandLogE[i] = amp2Log(bandE[i]);
 
+   for (i=0;i<st->mode->nbEBands;i++)
+   {
+      float diff = bandLogE[i] - st->oldBandE[i];
+      if (C==2)
+      {
+         diff += bandLogE[i+st->mode->nbEBands] - st->oldBandE[i+st->mode->nbEBands];
+         diff *= .5;
+      }
+      if (isTransient)
+      {
+         if (diff > 2)
+            tf_res[i] = -1;
+         else if (diff > -2 && diff < 1)
+            tf_res[i] = 1;
+      } else {
+         if (diff > 1.5)
+            tf_res[i] = -1;
+      }
+      //tf_res[i] = 0;
+      //if (isTransient)
+      //printf ("%f ", diff);
+   }
+   //printf ("\n");
    /* Band normalisation */
    normalise_bands(st->mode, freq, X, bandE, C, M);
    if (!shortBlocks && !folding_decision(st->mode, X, &st->tonal_average, &st->fold_decision, C, M))
