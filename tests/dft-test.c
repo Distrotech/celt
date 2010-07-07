@@ -93,9 +93,9 @@ void test1d(int nfft,int isinverse)
     /*for (k=0;k<nfft;++k) printf("%d %d ", in[k].r, in[k].i);printf("\n");*/
        
     if (isinverse)
-       kiss_ifft(cfg,in,out);
+       kiss_ifft(cfg,in,out, nfft);
     else
-       kiss_fft(cfg,in,out);
+       kiss_fft(cfg,in,out, nfft);
 
     /*for (k=0;k<nfft;++k) printf("%d %d ", out[k].r, out[k].i);printf("\n");*/
 

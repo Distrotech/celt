@@ -470,21 +470,23 @@ void compute_bitrev_table(
 void kf_work(
         kiss_fft_cpx * Fout,
         const kiss_fft_cpx * f,
-        const size_t fstride,
+        size_t fstride,
         int in_stride,
         int * factors,
         const kiss_fft_cfg st,
         int N,
         int s2,
-        int m2
+        int m2,
+        int shift
         )
 {
     const int p=*factors++; /* the radix  */
     const int m=*factors++; /* stage's fft length/p */
     /*printf ("fft %d %d %d %d %d %d %d\n", p*m, m, p, s2, fstride*in_stride, N, m2);*/
     if (m!=1) 
-        kf_work( Fout , f, fstride*p, in_stride, factors,st, N*p, fstride*in_stride, m);
+        kf_work( Fout , f, fstride*p, in_stride, factors,st, N*p, fstride*in_stride, m, shift);
 
+    fstride <<= shift;
     switch (p) {
         case 2: kf_bfly2(Fout,fstride,st,m, N, m2); break;
         case 4: kf_bfly4(Fout,fstride,st,m, N, m2); break;
@@ -501,21 +503,23 @@ void kf_work(
 void ki_work(
              kiss_fft_cpx * Fout,
              const kiss_fft_cpx * f,
-             const size_t fstride,
+             size_t fstride,
              int in_stride,
              int * factors,
              const kiss_fft_cfg st,
              int N,
              int s2,
-             int m2
+             int m2,
+             int shift
             )
 {
    const int p=*factors++; /* the radix  */
    const int m=*factors++; /* stage's fft length/p */
    /*printf ("fft %d %d %d %d %d %d %d\n", p*m, m, p, s2, fstride*in_stride, N, m2);*/
    if (m!=1) 
-      ki_work( Fout , f, fstride*p, in_stride, factors,st, N*p, fstride*in_stride, m);
+      ki_work( Fout , f, fstride*p, in_stride, factors,st, N*p, fstride*in_stride, m, shift);
 
+   fstride <<= shift;
    switch (p) {
       case 2: ki_bfly2(Fout,fstride,st,m, N, m2); break;
       case 4: ki_bfly4(Fout,fstride,st,m, N, m2); break;
@@ -613,8 +617,16 @@ kiss_fft_cfg kiss_fft_alloc(int nfft,void * mem,size_t * lenmem )
 
 
     
-void kiss_fft_stride(kiss_fft_cfg st,const kiss_fft_cpx *fin,kiss_fft_cpx *fout,int in_stride)
+void kiss_fft_stride(kiss_fft_cfg st,const kiss_fft_cpx *fin,kiss_fft_cpx *fout,int in_stride, int len)
 {
+   int shift;
+   for (shift=0;shift<32;shift++)
+   {
+      if (len<<shift == st->nfft)
+         break;
+   }
+   if (shift!= 0)
+      fprintf(stderr, "oops\n");
     if (fin == fout) 
     {
        celt_fatal("In-place FFT not supported");
@@ -629,17 +641,25 @@ void kiss_fft_stride(kiss_fft_cfg st,const kiss_fft_cpx *fin,kiss_fft_cpx *fout,
           fout[st->bitrev[i]].i *= st->scale;
 #endif
        }
-       kf_work( fout, fin, 1,in_stride, st->factors,st, 1, in_stride, 1);
+       kf_work( fout, fin, 1,in_stride, st->factors,st, 1, in_stride, 1, shift);
     }
 }
 
-void kiss_fft(kiss_fft_cfg cfg,const kiss_fft_cpx *fin,kiss_fft_cpx *fout)
+void kiss_fft(kiss_fft_cfg cfg,const kiss_fft_cpx *fin,kiss_fft_cpx *fout, int len)
 {
-    kiss_fft_stride(cfg,fin,fout,1);
+    kiss_fft_stride(cfg,fin,fout,1, len);
 }
 
-void kiss_ifft_stride(kiss_fft_cfg st,const kiss_fft_cpx *fin,kiss_fft_cpx *fout,int in_stride)
+void kiss_ifft_stride(kiss_fft_cfg st,const kiss_fft_cpx *fin,kiss_fft_cpx *fout,int in_stride, int len)
 {
+   int shift;
+   for (shift=0;shift<32;shift++)
+   {
+      if (len<<shift == st->nfft)
+         break;
+   }
+   if (shift!= 0)
+      fprintf(stderr, "oops\n");
    if (fin == fout) 
    {
       celt_fatal("In-place FFT not supported");
@@ -648,12 +668,12 @@ void kiss_ifft_stride(kiss_fft_cfg st,const kiss_fft_cpx *fin,kiss_fft_cpx *fout
       int i;
       for (i=0;i<st->nfft;i++)
          fout[st->bitrev[i]] = fin[i];
-      ki_work( fout, fin, 1,in_stride, st->factors,st, 1, in_stride, 1);
+      ki_work( fout, fin, 1,in_stride, st->factors,st, 1, in_stride, 1, shift);
    }
 }
 
-void kiss_ifft(kiss_fft_cfg cfg,const kiss_fft_cpx *fin,kiss_fft_cpx *fout)
+void kiss_ifft(kiss_fft_cfg cfg,const kiss_fft_cpx *fin,kiss_fft_cpx *fout, int len)
 {
-   kiss_ifft_stride(cfg,fin,fout,1);
+   kiss_ifft_stride(cfg,fin,fout,1, len);
 }
 

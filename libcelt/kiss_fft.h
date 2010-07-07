@@ -121,12 +121,12 @@ typedef struct kiss_fft_state* kiss_fft_cfg;
 
 kiss_fft_cfg kiss_fft_alloc(int nfft,void * mem,size_t * lenmem); 
 
-void kf_work(kiss_fft_cpx * Fout,const kiss_fft_cpx * f,const size_t fstride,
-             int in_stride,int * factors,const kiss_fft_cfg st,int N,int s2,int m2);
+void kf_work(kiss_fft_cpx * Fout,const kiss_fft_cpx * f, size_t fstride,
+             int in_stride,int * factors,const kiss_fft_cfg st,int N,int s2,int m2, int shift);
 
 /** Internal function. Can be useful when you want to do the bit-reversing yourself */
-void ki_work(kiss_fft_cpx * Fout, const kiss_fft_cpx * f, const size_t fstride,
-             int in_stride,int * factors,const kiss_fft_cfg st,int N,int s2,int m2);
+void ki_work(kiss_fft_cpx * Fout, const kiss_fft_cpx * f, size_t fstride,
+             int in_stride,int * factors,const kiss_fft_cfg st,int N,int s2,int m2, int shift);
 
 /**
  * kiss_fft(cfg,in_out_buf)
@@ -138,14 +138,14 @@ void ki_work(kiss_fft_cpx * Fout, const kiss_fft_cpx * f, const size_t fstride,
  * Note that each element is complex and can be accessed like
     f[k].r and f[k].i
  * */
-void kiss_fft(kiss_fft_cfg cfg,const kiss_fft_cpx *fin,kiss_fft_cpx *fout);
-void kiss_ifft(kiss_fft_cfg cfg,const kiss_fft_cpx *fin,kiss_fft_cpx *fout);
+void kiss_fft(kiss_fft_cfg cfg,const kiss_fft_cpx *fin,kiss_fft_cpx *fout, int len);
+void kiss_ifft(kiss_fft_cfg cfg,const kiss_fft_cpx *fin,kiss_fft_cpx *fout, int len);
 
 /**
  A more generic version of the above function. It reads its input from every Nth sample.
  * */
-void kiss_fft_stride(kiss_fft_cfg cfg,const kiss_fft_cpx *fin,kiss_fft_cpx *fout,int fin_stride);
-void kiss_ifft_stride(kiss_fft_cfg cfg,const kiss_fft_cpx *fin,kiss_fft_cpx *fout,int fin_stride);
+void kiss_fft_stride(kiss_fft_cfg cfg,const kiss_fft_cpx *fin,kiss_fft_cpx *fout,int fin_stride, int len);
+void kiss_ifft_stride(kiss_fft_cfg cfg,const kiss_fft_cpx *fin,kiss_fft_cpx *fout,int fin_stride, int len);
 
 /** If kiss_fft_alloc allocated a buffer, it is one contiguous 
    buffer and can be simply free()d when no longer needed*/
