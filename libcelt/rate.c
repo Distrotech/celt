@@ -161,7 +161,7 @@ static inline void interp_bits2pulses(const CELTMode *m, int start, int end, int
          lo = mid;
    }
    psum = 0;
-   printf ("%d/64\n", lo);
+   /*fprintf (stderr, "%d/64\n", lo);*/
    /*printf ("interp bisection gave %d\n", lo);*/
    for (j=start;j<end;j++)
    {
@@ -267,7 +267,7 @@ void compute_allocation(const CELTMode *m, int start, int end, int *offsets, int
          lo = mid;
       /*printf ("lo = %d, hi = %d\n", lo, hi);*/
    }
-   printf ("interp between %d and %d: ", lo, hi);
+   /*fprintf (stderr, "interp between %d and %d: ", lo, hi);*/
    for (j=start;j<end;j++)
    {
       int N = m->eBands[j+1]-m->eBands[j];
