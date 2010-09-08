@@ -135,7 +135,7 @@ void compute_pulse_cache(CELTMode *m, int LM)
 #endif /* !STATIC_MODES */
 
 
-#define ALLOC_STEPS 3
+#define ALLOC_STEPS 6
 
 static inline void interp_bits2pulses(const CELTMode *m, int start, int end, int *bits1, int *bits2, int total, int *bits, int *ebits, int *fine_priority, int len, int _C, int LM)
 {
@@ -161,6 +161,7 @@ static inline void interp_bits2pulses(const CELTMode *m, int start, int end, int
          lo = mid;
    }
    psum = 0;
+   printf ("%d/64\n", lo);
    /*printf ("interp bisection gave %d\n", lo);*/
    for (j=start;j<end;j++)
    {
@@ -266,7 +267,7 @@ void compute_allocation(const CELTMode *m, int start, int end, int *offsets, int
          lo = mid;
       /*printf ("lo = %d, hi = %d\n", lo, hi);*/
    }
-   /*printf ("interp between %d and %d\n", lo, hi);*/
+   printf ("interp between %d and %d: ", lo, hi);
    for (j=start;j<end;j++)
    {
       int N = m->eBands[j+1]-m->eBands[j];
