@@ -138,7 +138,7 @@ void compute_pulse_cache(CELTMode *m, int LM)
 #endif /* !STATIC_MODES */
 
 
-#define ALLOC_STEPS 6
+#define ALLOC_STEPS 8
 
 static inline int interp_bits2pulses(const CELTMode *m, int start, int end, int *bits1, int *bits2, int total, int *bits, int *ebits, int *fine_priority, int len, int _C, int LM)
 {
@@ -270,6 +270,9 @@ int compute_allocation(const CELTMode *m, int start, int end, int *offsets, int 
    VARDECL(int, bits2);
    VARDECL(int, thresh);
    VARDECL(int, trim_offset);
+   unsigned char allocVectors[4*21];
+   int nbAllocVectors = 4;
+
    SAVE_STACK;
    
    len = m->nbEBands;
@@ -286,8 +289,39 @@ int compute_allocation(const CELTMode *m, int start, int end, int *offsets, int 
       trim_offset[j] = C*(m->eBands[j+1]-m->eBands[j])*(alloc_trim-3)*(m->nbEBands-j-1)
             <<(LM+BITRES)>>5;
 
+   for (j=0;j<21;j++)
+      allocVectors[0*21+j] = 0;
+   for (j=0;j<21;j++)
+      allocVectors[3*21+j] = 200;
+
+   static int init=0;
+   static int y0, y1, x1, x2, tot;
+
+   if (!init) {
+      scanf("%d %d %d %d %d", &y0, &y1, &x1, &x2, &tot);
+      //init = 1;
+   }
+   total = tot;
+
+   for (j=0;j<21;j++)
+      offsets[j] = 0;
+   alloc_trim = 8;
+
+   for (j=0;j<x1;j++)
+      allocVectors[1*21+j] = y0 - (y0-y1)*j/x1;
+   for (j=x1;j<x2;j++)
+      allocVectors[1*21+j] = y1 - y1*(j-x1)/(x2-x1);
+   for (j=x2;j<21;j++)
+      allocVectors[1*21+j] = 0;
+
+   for (j=0;j<21;j++)
+      allocVectors[2*21+j] = allocVectors[1*21+j] + 80;
+
+   for (j=x2;j<21;j++)
+      allocVectors[1*21+j] = allocVectors[2*21+j] = 1;
+
    lo = 0;
-   hi = m->nbAllocVectors - 1;
+   hi = nbAllocVectors - 1;
    while (hi-lo != 1)
    {
       int psum = 0;
@@ -295,7 +329,7 @@ int compute_allocation(const CELTMode *m, int start, int end, int *offsets, int 
       for (j=start;j<end;j++)
       {
          int N = m->eBands[j+1]-m->eBands[j];
-         bits1[j] = C*N*m->allocVectors[mid*len+j]<<LM>>2;
+         bits1[j] = C*N*allocVectors[mid*len+j]<<LM>>2;
          if (bits1[j] > 0)
             bits1[j] += trim_offset[j];
          if (bits1[j] < 0)
@@ -315,12 +349,17 @@ int compute_allocation(const CELTMode *m, int start, int end, int *offsets, int 
          lo = mid;
       /*printf ("lo = %d, hi = %d\n", lo, hi);*/
    }
-   /*printf ("interp between %d and %d\n", lo, hi);*/
+   //printf ("interp between %d and %d\n", lo, hi);
+   if (lo != 1)
+   {
+      printf("Rate is too high!\n");
+      exit(1);
+   }
    for (j=start;j<end;j++)
    {
       int N = m->eBands[j+1]-m->eBands[j];
-      bits1[j] = (C*N*m->allocVectors[lo*len+j]<<LM>>2);
-      bits2[j] = (C*N*m->allocVectors[hi*len+j]<<LM>>2) - bits1[j];
+      bits1[j] = (C*N*allocVectors[lo*len+j]<<LM>>2);
+      bits2[j] = (C*N*allocVectors[hi*len+j]<<LM>>2) - bits1[j];
       if (bits1[j] > 0)
          bits1[j] += trim_offset[j];
       if (bits1[j] < 0)
