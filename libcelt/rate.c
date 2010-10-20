@@ -203,6 +203,12 @@ static inline int interp_bits2pulses(const CELTMode *m, int start, int end, int 
       for (j=start;j<start+left;j++)
          bits[j]++;
    }
+   static int foo=0;
+   if (!foo)
+   {
+      foo=1;
+      for (j=start;j<end;j++)fprintf(stderr, "%d ", 4*bits[j]/(m->eBands[j+1]-m->eBands[j]<<LM));fprintf(stderr, "\n");
+   }
    for (j=start;j<end;j++)
    {
       int N0, N, den;
@@ -283,10 +289,10 @@ int compute_allocation(const CELTMode *m, int start, int end, int *offsets, int 
       allocVectors[3*21+j] = 200;
 
    static int init=0;
-   static int y0, y1, x1, x2, tot;
+   static int y0, d0, d1, x2, tot;
 
    if (!init) {
-      scanf("%d %d %d %d %d", &y0, &y1, &x1, &x2, &tot);
+      scanf("%d %d %d %d %d", &y0, &d0, &d1, &x2, &tot);
       //init = 1;
    }
    total = tot;
@@ -295,10 +301,15 @@ int compute_allocation(const CELTMode *m, int start, int end, int *offsets, int 
       offsets[j] = 0;
    alloc_trim = 8;
 
-   for (j=0;j<x1;j++)
-      allocVectors[1*21+j] = y0 - (y0-y1)*j/x1;
-   for (j=x1;j<x2;j++)
-      allocVectors[1*21+j] = y1 - y1*(j-x1)/(x2-x1);
+   for (j=0;j<x2;j++)
+   {
+      int a,b;
+      a = y0 - d0*j;
+      b = d1*(x2-j)/4;
+      if (a<b)
+         a = b;
+      allocVectors[1*21+j] = a;
+   }
    for (j=x2;j<21;j++)
       allocVectors[1*21+j] = 0;
 
@@ -331,7 +342,7 @@ int compute_allocation(const CELTMode *m, int start, int end, int *offsets, int 
    //printf ("interp between %d and %d\n", lo, hi);
    if (lo != 1)
    {
-      printf("Rate is too high!\n");
+      fprintf(stderr, "Rate is too high!\n");
       exit(1);
    }
    for (j=start;j<end;j++)
