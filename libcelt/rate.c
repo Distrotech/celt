@@ -307,11 +307,13 @@ int compute_allocation(const CELTMode *m, int start, int end, int *offsets, int 
    for (j=x1;j<x2;j++)
       allocVectors[1*21+j] = d1*(x2-j)/4;
 
+   allocVectors[1*21] = allocVectors[1*21+1] =
+         (allocVectors[1*21] + allocVectors[1*21+1])/2;
    for (j=x2;j<21;j++)
       allocVectors[1*21+j] = 0;
 
    for (j=0;j<21;j++)
-      allocVectors[2*21+j] = allocVectors[1*21+j] + 80;
+      allocVectors[2*21+j] = IMIN(255, allocVectors[1*21+j] + 80);
 
    for (j=x2;j<21;j++)
       allocVectors[1*21+j] = allocVectors[2*21+j] = 1;
