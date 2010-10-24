@@ -353,6 +353,24 @@ static void deemphasis(celt_sig *in[], celt_word16 *pcm, int N, int _C, const ce
    }
 }
 
+static void comb_filter(celt_word32 *y[2], celt_word32 *x[2], int T0, int T1, int N,
+      int C, celt_word16 g0, celt_word16 g1, const celt_word16 *window, int overlap)
+{
+   int c, i;
+   for (c=0;c<C;c++)
+   {
+      for (i=0;i<overlap;i++)
+      {
+         celt_word16 f;
+         f = MULT16_16_Q15(window[i],window[i]);
+         y[c][i] += MULT16_32_Q15(MULT16_16_Q15((Q15ONE-f),g0),x[c][i-T0])
+               + MULT16_32_Q15(MULT16_16_Q15(f,g1),x[c][i-T1]);
+      }
+      for (i=overlap;i<N;i++)
+         y[c][i] += MULT16_32_Q15(g1,x[c][i-T1]);
+   }
+}
+
 static const signed char tf_select_table[4][8] = {
       {0, -1, 0, -1,    0,-1, 0,-1},
       {0, -1, 0, -2,    1, 0, 1 -1},
@@ -1564,6 +1582,8 @@ int celt_decode_with_ec_float(CELTDecoder * restrict st, const unsigned char *da
 
    /* Compute inverse MDCTs */
    compute_inv_mdcts(st->mode, shortBlocks, freq, out_syn, overlap_mem, C, LM);
+
+   comb_filter(out_syn, out_syn, 40, 40, N, C, QCONST16(0.1f,15), QCONST16(0.1f,15), st->mode->window, st->mode->overlap);
 
    deemphasis(out_syn, pcm, N, C, st->mode->preemph, st->preemph_memD);
    st->loss_count = 0;
