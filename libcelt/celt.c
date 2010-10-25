@@ -363,6 +363,7 @@ static void comb_filter(celt_word32 *y, celt_word32 *x, int T0, int T1, int N,
       int C, celt_word16 g0, celt_word16 g1, const celt_word16 *window, int overlap)
 {
    int i;
+   /* printf ("%d %d %f %f\n", T0, T1, g0, g1); */
    for (i=0;i<overlap;i++)
    {
       celt_word16 f;
@@ -621,9 +622,6 @@ static int alloc_trim_analysis(const CELTMode *m, const celt_norm *X,
    return trim_index;
 }
 
-static int global_pitch = 0;
-static float global_gain = 0;
-
 #ifdef FIXED_POINT
 int celt_encode_with_ec(CELTEncoder * restrict st, const celt_int16 * pcm, celt_int16 * optional_resynthesis, int frame_size, unsigned char *compressed, int nbCompressedBytes, ec_enc *enc)
 {
@@ -746,8 +744,19 @@ int celt_encode_with_ec_float(CELTEncoder * restrict st, const celt_sig * pcm, c
          if (gain1 > .5)
             gain1 = .5;
          //printf ("%d %f\n", pitch_index, gain1);
-         global_pitch = pitch_index;
-         global_gain = gain1;
+         //global_pitch = pitch_index;
+         //global_gain = gain1;
+      }
+      if (gain1<.1)
+      {
+         ec_enc_bit_prob(enc, 0, 32768);
+         gain1 = 0;
+      } else {
+         int qg = floor(.5+gain1*8)-1;
+         ec_enc_bit_prob(enc, 1, 32768);
+         ec_enc_uint(enc, pitch_index-1, COMBFILTER_MAXPERIOD);
+         ec_enc_bits(enc, qg, 2);
+         gain1 = .125+.125*qg;
       }
 
       for (c=0;c<C;c++)
@@ -767,10 +776,11 @@ int celt_encode_with_ec_float(CELTEncoder * restrict st, const celt_sig * pcm, c
             CELT_MOVE(prefilter_mem+c*COMBFILTER_MAXPERIOD+COMBFILTER_MAXPERIOD-N, pre[c]+COMBFILTER_MAXPERIOD, N);
          }
       }
+
+      st->prefilter_period = pitch_index;
+      st->prefilter_gain = gain1;
       RESTORE_STACK;
    }
-   st->prefilter_period = global_pitch;
-   st->prefilter_gain = global_gain;
 
    resynth = optional_resynthesis!=NULL;
 
@@ -1510,6 +1520,8 @@ int celt_decode_with_ec_float(CELTDecoder * restrict st, const unsigned char *da
    int effEnd;
    int codedBands;
    int alloc_trim;
+   int postfilter_pitch;
+   celt_word16 postfilter_gain;
    SAVE_STACK;
 
    if (pcm==NULL)
@@ -1568,6 +1580,17 @@ int celt_decode_with_ec_float(CELTDecoder * restrict st, const unsigned char *da
       nbFilledBytes = (ec_dec_tell(dec, 0)+4)>>3;
    }
    nbAvailableBytes = len-nbFilledBytes;
+
+   if (ec_dec_bit_prob(dec, 32768))
+   {
+      int qg;
+      postfilter_pitch = 1+ec_dec_uint(dec, COMBFILTER_MAXPERIOD);
+      qg = ec_dec_bits(dec, 2);
+      postfilter_gain = .125+.125*qg;
+   } else {
+      postfilter_gain = 0;
+      postfilter_pitch = 0;
+   }
 
    /* Decode the global flags (first symbols in the stream) */
    intra_ener = ec_dec_bit_prob(dec, 8192);
@@ -1653,10 +1676,10 @@ int celt_decode_with_ec_float(CELTDecoder * restrict st, const unsigned char *da
    compute_inv_mdcts(st->mode, shortBlocks, freq, out_syn, overlap_mem, C, LM);
 
    for (c=0;c<C;c++)
-      comb_filter(out_syn[c], out_syn[c], st->postfilter_period, global_pitch, N, C,
-            st->postfilter_gain, global_gain, st->mode->window, st->mode->overlap);
-   st->postfilter_period = global_pitch;
-   st->postfilter_gain = global_gain;
+      comb_filter(out_syn[c], out_syn[c], st->postfilter_period, postfilter_pitch, N, C,
+            st->postfilter_gain, postfilter_gain, st->mode->window, st->mode->overlap);
+   st->postfilter_period = postfilter_pitch;
+   st->postfilter_gain = postfilter_gain;
 
    deemphasis(out_syn, pcm, N, C, st->mode->preemph, st->preemph_memD);
    st->loss_count = 0;
