@@ -737,9 +737,15 @@ int celt_encode_with_ec_float(CELTEncoder * restrict st, const celt_sig * pcm, c
          pitch_downsample(pre, pitch_buf, COMBFILTER_MAXPERIOD+N, COMBFILTER_MAXPERIOD+N,
                           C, mem0, mem1);
          pitch_search(st->mode, pitch_buf+(COMBFILTER_MAXPERIOD>>1), pitch_buf, N,
-               COMBFILTER_MAXPERIOD, &pitch_index, &tmp, 1<<LM);
+               COMBFILTER_MAXPERIOD-50, &pitch_index, &tmp, 1<<LM, &gain1);
          pitch_index = COMBFILTER_MAXPERIOD-pitch_index;
 
+         if (pitch_index<60)
+            gain1 = 0;
+         gain1 = .5*gain1;
+         if (gain1 > .5)
+            gain1 = .5;
+         //printf ("%d %f\n", pitch_index, gain1);
          global_pitch = pitch_index;
          global_gain = gain1;
       }
@@ -1326,7 +1332,7 @@ static void celt_decode_lost(CELTDecoder * restrict st, celt_word16 * restrict p
       pitch_downsample(out_mem, pitch_buf, MAX_PERIOD, MAX_PERIOD,
                        C, mem0, mem1);
       pitch_search(st->mode, pitch_buf+((MAX_PERIOD-len2)>>1), pitch_buf, len2,
-                   MAX_PERIOD-len2-100, &pitch_index, &tmp, 1<<LM);
+                   MAX_PERIOD-len2-100, &pitch_index, &tmp, 1<<LM, NULL);
       pitch_index = MAX_PERIOD-len2-pitch_index;
       st->last_pitch_index = pitch_index;
    } else {
