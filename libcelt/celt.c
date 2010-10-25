@@ -78,6 +78,9 @@ struct CELTEncoder {
    int delayedIntra;
    int tonal_average;
 
+   int prefilter_period;
+   celt_word16 prefilter_gain;
+
    /* VBR-related parameters */
    celt_int32 vbr_reservoir;
    celt_int32 vbr_drift;
@@ -618,6 +621,9 @@ static int alloc_trim_analysis(const CELTMode *m, const celt_norm *X,
    return trim_index;
 }
 
+static int global_pitch = 0;
+static float global_gain = 0;
+
 #ifdef FIXED_POINT
 int celt_encode_with_ec(CELTEncoder * restrict st, const celt_int16 * pcm, celt_int16 * optional_resynthesis, int frame_size, unsigned char *compressed, int nbCompressedBytes, ec_enc *enc)
 {
@@ -692,10 +698,16 @@ int celt_encode_with_ec_float(CELTEncoder * restrict st, const celt_sig * pcm, c
 
    /* Find pitch period and gain */
    {
-      VARDECL(celt_sig, pre);
+      VARDECL(celt_sig, _pre);
+      celt_sig *pre[2];
+      int pitch_index;
+      float gain1 = .0;
       SAVE_STACK;
       c = 0;
-      ALLOC(pre, C*(N+COMBFILTER_MAXPERIOD), celt_sig);
+      ALLOC(_pre, C*(N+COMBFILTER_MAXPERIOD), celt_sig);
+
+      pre[0] = _pre;
+      pre[1] = _pre + (N+COMBFILTER_MAXPERIOD);
 
       for (c=0;c<C;c++)
       {
@@ -712,23 +724,47 @@ int celt_encode_with_ec_float(CELTEncoder * restrict st, const celt_sig * pcm, c
             inp++;
             pcmp+=C;
          }
-         CELT_COPY(pre, prefilter_mem+c*COMBFILTER_MAXPERIOD, COMBFILTER_MAXPERIOD);
-         CELT_COPY(pre+COMBFILTER_MAXPERIOD, in+c*(N+st->overlap)+st->overlap, N);
+         CELT_COPY(pre[c], prefilter_mem+c*COMBFILTER_MAXPERIOD, COMBFILTER_MAXPERIOD);
+         CELT_COPY(pre[c]+COMBFILTER_MAXPERIOD, in+c*(N+st->overlap)+st->overlap, N);
+      }
+
+      {
+         celt_word16 pitch_buf[(MAX_PERIOD+N)>>1];
+         celt_word32 tmp=0;
+         celt_word32 mem0[2]={0,0};
+         celt_word16 mem1[2]={0,0};
+
+         pitch_downsample(pre, pitch_buf, COMBFILTER_MAXPERIOD+N, COMBFILTER_MAXPERIOD+N,
+                          C, mem0, mem1);
+         pitch_search(st->mode, pitch_buf+(COMBFILTER_MAXPERIOD>>1), pitch_buf, N,
+               COMBFILTER_MAXPERIOD, &pitch_index, &tmp, 1<<LM);
+         pitch_index = COMBFILTER_MAXPERIOD-pitch_index;
+
+         global_pitch = pitch_index;
+         global_gain = gain1;
+      }
+
+      for (c=0;c<C;c++)
+      {
+
 
          CELT_COPY(in+c*(N+st->overlap), st->in_mem+c*(st->overlap), st->overlap);
-         comb_filter(in+c*(N+st->overlap)+st->overlap, pre+COMBFILTER_MAXPERIOD, 40, 40, N, C, -QCONST16(0.1f,15), -QCONST16(0.1f,15), st->mode->window, st->mode->overlap);
+         comb_filter(in+c*(N+st->overlap)+st->overlap, pre[c]+COMBFILTER_MAXPERIOD,
+               st->prefilter_period, pitch_index, N, C, -st->prefilter_gain, -gain1, st->mode->window, st->mode->overlap);
          CELT_COPY(st->in_mem+c*(st->overlap), in+c*(N+st->overlap)+N, st->overlap);
 
          if (N>COMBFILTER_MAXPERIOD)
          {
-            CELT_MOVE(prefilter_mem+c*COMBFILTER_MAXPERIOD, pre+N, COMBFILTER_MAXPERIOD);
+            CELT_MOVE(prefilter_mem+c*COMBFILTER_MAXPERIOD, pre[c]+N, COMBFILTER_MAXPERIOD);
          } else {
             CELT_MOVE(prefilter_mem+c*COMBFILTER_MAXPERIOD, prefilter_mem+c*COMBFILTER_MAXPERIOD+N, COMBFILTER_MAXPERIOD-N);
-            CELT_MOVE(prefilter_mem+c*COMBFILTER_MAXPERIOD+COMBFILTER_MAXPERIOD-N, pre+COMBFILTER_MAXPERIOD, N);
+            CELT_MOVE(prefilter_mem+c*COMBFILTER_MAXPERIOD+COMBFILTER_MAXPERIOD-N, pre[c]+COMBFILTER_MAXPERIOD, N);
          }
       }
       RESTORE_STACK;
    }
+   st->prefilter_period = global_pitch;
+   st->prefilter_gain = global_gain;
 
    resynth = optional_resynthesis!=NULL;
 
@@ -1189,6 +1225,8 @@ struct CELTDecoder {
 
    int last_pitch_index;
    int loss_count;
+   int postfilter_period;
+   celt_word16 postfilter_gain;
 
    celt_sig preemph_memD[2];
    
@@ -1609,7 +1647,10 @@ int celt_decode_with_ec_float(CELTDecoder * restrict st, const unsigned char *da
    compute_inv_mdcts(st->mode, shortBlocks, freq, out_syn, overlap_mem, C, LM);
 
    for (c=0;c<C;c++)
-      comb_filter(out_syn[c], out_syn[c], 40, 40, N, C, QCONST16(0.1f,15), QCONST16(0.1f,15), st->mode->window, st->mode->overlap);
+      comb_filter(out_syn[c], out_syn[c], st->postfilter_period, global_pitch, N, C,
+            st->postfilter_gain, global_gain, st->mode->window, st->mode->overlap);
+   st->postfilter_period = global_pitch;
+   st->postfilter_gain = global_gain;
 
    deemphasis(out_syn, pcm, N, C, st->mode->preemph, st->preemph_memD);
    st->loss_count = 0;

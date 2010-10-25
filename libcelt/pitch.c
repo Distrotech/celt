@@ -116,8 +116,7 @@ void pitch_downsample(celt_sig * restrict x[], celt_word16 * restrict x_lp, int 
 void pitch_search(const CELTMode *m, const celt_word16 * restrict x_lp, celt_word16 * restrict y, int len, int max_pitch, int *pitch, celt_sig *xmem, int M)
 {
    int i, j;
-   const int lag = MAX_PERIOD;
-   const int N = M*m->shortMdctSize;
+   int lag;
    int best_pitch[2]={0};
    VARDECL(celt_word16, x_lp4);
    VARDECL(celt_word16, y_lp4);
@@ -127,6 +126,8 @@ void pitch_search(const CELTMode *m, const celt_word16 * restrict x_lp, celt_wor
    int shift=0;
 
    SAVE_STACK;
+
+   lag = len+max_pitch;
 
    ALLOC(x_lp4, len>>2, celt_word16);
    ALLOC(y_lp4, lag>>2, celt_word16);
@@ -198,8 +199,8 @@ void pitch_search(const CELTMode *m, const celt_word16 * restrict x_lp, celt_wor
    }
    *pitch = 2*best_pitch[0]-offset;
 
-   CELT_MOVE(y, y+(N>>1), (lag-N)>>1);
-   CELT_MOVE(y+((lag-N)>>1), x_lp, N>>1);
+   //CELT_MOVE(y, y+(N>>1), (lag-N)>>1);
+   //CELT_MOVE(y+((lag-N)>>1), x_lp, N>>1);
 
    RESTORE_STACK;
 
