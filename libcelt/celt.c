@@ -756,15 +756,18 @@ int celt_encode_with_ec_float(CELTEncoder * restrict st, const celt_sig * pcm, c
                COMBFILTER_MAXPERIOD-50, &pitch_index, &tmp, 1<<LM, &gain1);
          pitch_index = COMBFILTER_MAXPERIOD-pitch_index;
 
-         if (pitch_index<60)
+         gain1 = remove_doubling(pre, COMBFILTER_MAXPERIOD, N, &pitch_index);
+         if (pitch_index > COMBFILTER_MAXPERIOD)
+            pitch_index = COMBFILTER_MAXPERIOD;
+         if (pitch_index<40)
             gain1 = 0;
          gain1 = .5*gain1;
          if (gain1 > .5)
             gain1 = .5;
-         //printf ("%d %f\n", pitch_index, gain1);
-         //global_pitch = pitch_index;
-         //global_gain = gain1;
+         if (fabs(gain1-st->prefilter_gain)<.2)
+            gain1=st->prefilter_gain;
       }
+      //printf ("%d\n", gain1<.1);
       if (gain1<.1)
       {
          ec_enc_bit_prob(enc, 0, 32768);

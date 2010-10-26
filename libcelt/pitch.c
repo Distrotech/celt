@@ -75,7 +75,7 @@ static void find_best_pitch(celt_word32 *xcorr, celt_word32 maxcorr, celt_word16
          celt_word16 num;
          celt_word32 xcorr16;
          xcorr16 = EXTRACT16(VSHR32(xcorr[i], xshift));
-         num = MULT16_16_Q15(xcorr16,xcorr16)*(1+.005*i);
+         num = MULT16_16_Q15(xcorr16,xcorr16);
          if (MULT16_32_Q15(num,best_den[1]) > MULT16_32_Q15(best_num[1],Syy))
          {
             if (MULT16_32_Q15(num,best_den[0]) > MULT16_32_Q15(best_num[0],Syy))
@@ -213,3 +213,46 @@ void pitch_search(const CELTMode *m, const celt_word16 * restrict x_lp, celt_wor
 
    /*printf ("%d\n", *pitch);*/
 }
+
+float remove_doubling(celt_word32 *pre[2], int COMBFILTER_MAXPERIOD, int N, int *_T0)
+{
+   int k, i, T, T0, k0;
+   float g, g0;
+   float *x;
+   float xy,xx,yy;
+
+   T = T0 = *_T0;
+   x = pre[0]+COMBFILTER_MAXPERIOD;
+   xx=xy=yy=0;
+   for (i=0;i<N;i++)
+   {
+      xy += x[i]*x[i-T0];
+      xx += x[i]*x[i];
+      yy += x[i-T0]*x[i-T0];
+   }
+   g = g0 = xy/sqrt(1+xx*yy);
+   k0 = 1;
+   for (k=2;k<=5;k++)
+   {
+      int T1;
+      float g1;
+      T1 = (2*T0+k)/(2*k);
+      xx=xy=yy=0;
+      for (i=0;i<N;i++)
+      {
+         xy += x[i]*x[i-T1];
+         xx += x[i]*x[i];
+         yy += x[i-T1]*x[i-T1];
+      }
+      g1 = xy/sqrt(1+xx*yy);
+      if (T1 > 50 && (g1 > .85*g0 || g1 > .8 || (k==2*k0 && g1 > .7)))
+      {
+         g = g1;
+         T = T1;
+      }
+   }
+   /*printf ("%d %f\n", T, g);*/
+   *_T0 = T;
+   return g;
+}
+
