@@ -375,6 +375,24 @@ static void comb_filter(celt_word32 *y, celt_word32 *x, int T0, int T1, int N,
       y[i] += MULT16_32_Q15(g1,x[i-T1]);
 }
 
+static void comb_filter2(celt_word32 *y, celt_word32 *x, int T0, int T1, int N,
+      int C, celt_word16 g0, celt_word16 g1, const celt_word16 *window, int overlap)
+{
+   int i;
+   /* printf ("%d %d %f %f\n", T0, T1, g0, g1); */
+   for (i=0;i<overlap;i++)
+      y[i] += MULT16_32_Q15(g0,x[i-T0]);
+   for (i=overlap;i<2*overlap;i++)
+   {
+      celt_word16 f;
+      f = MULT16_16_Q15(window[i-overlap],window[i-overlap]);
+      y[i] += MULT16_32_Q15(MULT16_16_Q15((Q15ONE-f),g0),x[i-T0])
+                     + MULT16_32_Q15(MULT16_16_Q15(f,g1),x[i-T1]);
+   }
+   for (i=2*overlap;i<N;i++)
+      y[i] += MULT16_32_Q15(g1,x[i-T1]);
+}
+
 static const signed char tf_select_table[4][8] = {
       {0, -1, 0, -1,    0,-1, 0,-1},
       {0, -1, 0, -2,    1, 0, 1 -1},
@@ -1676,7 +1694,7 @@ int celt_decode_with_ec_float(CELTDecoder * restrict st, const unsigned char *da
    compute_inv_mdcts(st->mode, shortBlocks, freq, out_syn, overlap_mem, C, LM);
 
    for (c=0;c<C;c++)
-      comb_filter(out_syn[c], out_syn[c], st->postfilter_period, postfilter_pitch, N, C,
+      comb_filter2(out_syn[c], out_syn[c], st->postfilter_period, postfilter_pitch, N, C,
             st->postfilter_gain, postfilter_gain, st->mode->window, st->mode->overlap);
    st->postfilter_period = postfilter_pitch;
    st->postfilter_gain = postfilter_gain;
