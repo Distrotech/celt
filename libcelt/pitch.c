@@ -218,6 +218,7 @@ float remove_doubling(celt_word32 *pre[2], int COMBFILTER_MAXPERIOD, int N, int 
 {
    int k, i, T, T0, k0;
    float g, g0;
+   float pg;
    float *x;
    float xy,xx,yy;
 
@@ -231,6 +232,7 @@ float remove_doubling(celt_word32 *pre[2], int COMBFILTER_MAXPERIOD, int N, int 
       yy += x[i-T0]*x[i-T0];
    }
    g = g0 = xy/sqrt(1+xx*yy);
+   pg = xy/(1+yy);
    k0 = 1;
    for (k=2;k<=5;k++)
    {
@@ -247,12 +249,13 @@ float remove_doubling(celt_word32 *pre[2], int COMBFILTER_MAXPERIOD, int N, int 
       g1 = xy/sqrt(1+xx*yy);
       if (T1 > 50 && (g1 > .85*g0 || g1 > .8 || (k==2*k0 && g1 > .7)))
       {
+         pg = xy/(1+yy);
          g = g1;
          T = T1;
       }
    }
    /*printf ("%d %f\n", T, g);*/
    *_T0 = T;
-   return g;
+   return pg;
 }
 
