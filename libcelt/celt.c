@@ -756,16 +756,9 @@ int celt_encode_with_ec_float(CELTEncoder * restrict st, const celt_sig * pcm, c
                COMBFILTER_MAXPERIOD-50, &pitch_index, &tmp, 1<<LM, &gain1);
          pitch_index = COMBFILTER_MAXPERIOD-pitch_index;
 
-         gain1 = remove_doubling(pre, COMBFILTER_MAXPERIOD, N, &pitch_index);
-         if (abs(pitch_index/2-st->prefilter_period)<=2 && st->prefilter_gain>.1)
-            pitch_index = pitch_index/2;
-         if (abs(pitch_index/3-st->prefilter_period)<=2 && st->prefilter_gain>.1)
-            pitch_index = (2*pitch_index+3)/6;
-         if (abs((pitch_index+2)/4-st->prefilter_period)<=2 && st->prefilter_gain>.1)
-            pitch_index = (pitch_index+2)/4;
-         if (abs((2*pitch_index+5)/10-st->prefilter_period)<=2 && st->prefilter_gain>.1)
-            pitch_index = (2*pitch_index+5)/10;
-         //printf("%d %f\n", pitch_index, gain1);
+         gain1 = remove_doubling(pre, COMBFILTER_MAXPERIOD, N, &pitch_index,
+               st->prefilter_period, st->prefilter_gain);
+         /*printf("%d %f\n", pitch_index, gain1);*/
          if (pitch_index > COMBFILTER_MAXPERIOD)
             pitch_index = COMBFILTER_MAXPERIOD;
          if (pitch_index<40)

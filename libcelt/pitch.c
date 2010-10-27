@@ -214,7 +214,8 @@ void pitch_search(const CELTMode *m, const celt_word16 * restrict x_lp, celt_wor
    /*printf ("%d\n", *pitch);*/
 }
 
-float remove_doubling(celt_word32 *pre[2], int COMBFILTER_MAXPERIOD, int N, int *_T0)
+float remove_doubling(celt_word32 *pre[2], int COMBFILTER_MAXPERIOD, int N, int *_T0,
+      int prev_period, celt_word16 prev_gain)
 {
    int k, i, T, T0, k0;
    float g, g0;
@@ -234,11 +235,14 @@ float remove_doubling(celt_word32 *pre[2], int COMBFILTER_MAXPERIOD, int N, int 
    g = g0 = xy/sqrt(1+xx*yy);
    pg = xy/(1+yy);
    k0 = 1;
-   for (k=2;k<=6;k++)
+   for (k=2;k<=15;k++)
    {
       int T1, T1b;
       float g1;
+      float cont=0;
       T1 = (2*T0+k)/(2*k);
+      if (T1 < 50)
+         break;
       if (k==2)
       {
          if (T1+T0>COMBFILTER_MAXPERIOD)
@@ -261,7 +265,11 @@ float remove_doubling(celt_word32 *pre[2], int COMBFILTER_MAXPERIOD, int N, int 
          yy += x[i-T1b]*x[i-T1b];
       }
       g1 = xy/sqrt(1+2*xx*yy);
-      if (T1 > 50 && (g1 > .75*g0 || g1 > .65 || (k==2*k0 && g1 > .7)))
+      if (abs(T1-prev_period)<=2)
+         cont += 2*prev_gain;
+      if (abs(T1-prev_period)<=4)
+         cont += prev_gain;
+      if (g1+cont > .75*g0 || g1+cont > .65)
       {
          pg = xy/(1+yy);
          g = g1;
