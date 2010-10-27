@@ -234,20 +234,34 @@ float remove_doubling(celt_word32 *pre[2], int COMBFILTER_MAXPERIOD, int N, int 
    g = g0 = xy/sqrt(1+xx*yy);
    pg = xy/(1+yy);
    k0 = 1;
-   for (k=2;k<=5;k++)
+   for (k=2;k<=6;k++)
    {
-      int T1;
+      int T1, T1b;
       float g1;
       T1 = (2*T0+k)/(2*k);
-      xx=xy=yy=0;
+      if (k==2)
+      {
+         if (T1+T0>COMBFILTER_MAXPERIOD)
+            T1b = T0;
+         else
+            T1b = T0+T1;
+      } else if (k==4)
+      {
+         T1b = (6*T0+k)/(2*k);
+      } else {
+         T1b = (4*T0+k)/(2*k);
+      }
+      xy=yy=0;
       for (i=0;i<N;i++)
       {
          xy += x[i]*x[i-T1];
-         xx += x[i]*x[i];
          yy += x[i-T1]*x[i-T1];
+
+         xy += x[i]*x[i-T1b];
+         yy += x[i-T1b]*x[i-T1b];
       }
-      g1 = xy/sqrt(1+xx*yy);
-      if (T1 > 50 && (g1 > .85*g0 || g1 > .8 || (k==2*k0 && g1 > .7)))
+      g1 = xy/sqrt(1+2*xx*yy);
+      if (T1 > 50 && (g1 > .75*g0 || g1 > .65 || (k==2*k0 && g1 > .7)))
       {
          pg = xy/(1+yy);
          g = g1;
@@ -256,7 +270,7 @@ float remove_doubling(celt_word32 *pre[2], int COMBFILTER_MAXPERIOD, int N, int 
    }
    if (pg > g)
       pg = g;
-   /*printf ("%d %f\n", T, g);*/
+   /*printf ("%d %d ", T0, T);*/
    *_T0 = T;
    return pg;
 }
