@@ -47,8 +47,7 @@
 #include "mathops.h"
 
 static void find_best_pitch(celt_word32 *xcorr, celt_word32 maxcorr, celt_word16 *y,
-                            int yshift, int len, int max_pitch, int best_pitch[2],
-                            celt_word32 *best_gain)
+                            int yshift, int len, int max_pitch, int best_pitch[2])
 {
    int i, j;
    celt_word32 Syy=1;
@@ -96,10 +95,6 @@ static void find_best_pitch(celt_word32 *xcorr, celt_word32 maxcorr, celt_word16
       Syy += SHR32(MULT16_16(y[i+len],y[i+len]),yshift) - SHR32(MULT16_16(y[i],y[i]),yshift);
       Syy = MAX32(1, Syy);
    }
-   if (best_gain)
-   {
-      *best_gain = xcorr[best_pitch[0]]/best_den[0];
-   }
 }
 
 void pitch_downsample(celt_sig * restrict x[], celt_word16 * restrict x_lp, int len, int end, int _C, celt_sig * restrict xmem, celt_word16 * restrict filt_mem)
@@ -120,7 +115,7 @@ void pitch_downsample(celt_sig * restrict x[], celt_word16 * restrict x_lp, int 
 }
 
 void pitch_search(const CELTMode *m, const celt_word16 * restrict x_lp, celt_word16 * restrict y,
-                  int len, int max_pitch, int *pitch, celt_sig *xmem, int M, celt_word16 *gain)
+                  int len, int max_pitch, int *pitch, celt_sig *xmem, int M)
 {
    int i, j;
    int lag;
@@ -171,7 +166,7 @@ void pitch_search(const CELTMode *m, const celt_word16 * restrict x_lp, celt_wor
       xcorr[i] = MAX32(-1, sum);
       maxcorr = MAX32(maxcorr, sum);
    }
-   find_best_pitch(xcorr, maxcorr, y_lp4, 0, len>>2, max_pitch>>2, best_pitch, NULL);
+   find_best_pitch(xcorr, maxcorr, y_lp4, 0, len>>2, max_pitch>>2, best_pitch);
 
    /* Finer search with 2x decimation */
    maxcorr=1;
@@ -186,7 +181,7 @@ void pitch_search(const CELTMode *m, const celt_word16 * restrict x_lp, celt_wor
       xcorr[i] = MAX32(-1, sum);
       maxcorr = MAX32(maxcorr, sum);
    }
-   find_best_pitch(xcorr, maxcorr, y, shift, len>>1, max_pitch>>1, best_pitch, gain);
+   find_best_pitch(xcorr, maxcorr, y, shift, len>>1, max_pitch>>1, best_pitch);
 
    /* Refine by pseudo-interpolation */
    if (best_pitch[0]>0 && best_pitch[0]<(max_pitch>>1)-1)
