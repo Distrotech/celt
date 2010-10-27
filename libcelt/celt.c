@@ -745,7 +745,7 @@ int celt_encode_with_ec_float(CELTEncoder * restrict st, const celt_sig * pcm, c
       }
 
       {
-         celt_word16 pitch_buf[(MAX_PERIOD+N)>>1];
+         celt_word16 pitch_buf[(COMBFILTER_MAXPERIOD+N)>>1];
          celt_word32 tmp=0;
          celt_word32 mem0[2]={0,0};
          celt_word16 mem1[2]={0,0};
@@ -756,7 +756,7 @@ int celt_encode_with_ec_float(CELTEncoder * restrict st, const celt_sig * pcm, c
                COMBFILTER_MAXPERIOD-50, &pitch_index, &tmp, 1<<LM, &gain1);
          pitch_index = COMBFILTER_MAXPERIOD-pitch_index;
 
-         gain1 = remove_doubling(pre, COMBFILTER_MAXPERIOD, N, &pitch_index,
+         gain1 = remove_doubling(pitch_buf, COMBFILTER_MAXPERIOD, N, &pitch_index,
                st->prefilter_period, st->prefilter_gain);
          /*printf("%d %f\n", pitch_index, gain1);*/
          if (pitch_index > COMBFILTER_MAXPERIOD)
