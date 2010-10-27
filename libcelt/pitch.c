@@ -254,6 +254,8 @@ float remove_doubling(celt_word32 *pre[2], int COMBFILTER_MAXPERIOD, int N, int 
          T = T1;
       }
    }
+   if (pg > g)
+      pg = g;
    /*printf ("%d %f\n", T, g);*/
    *_T0 = T;
    return pg;
