@@ -97,6 +97,7 @@ static void find_best_pitch(celt_word32 *xcorr, celt_word32 maxcorr, celt_word16
    }
 }
 
+#include "plc.h"
 void pitch_downsample(celt_sig * restrict x[], celt_word16 * restrict x_lp, int len, int end, int _C, celt_sig * restrict xmem, celt_word16 * restrict filt_mem)
 {
    int i;
@@ -112,6 +113,41 @@ void pitch_downsample(celt_sig * restrict x[], celt_word16 * restrict x_lp, int 
       x_lp[0] += SHR32(HALF32(HALF32(x[1][1])+x[1][0]), SIG_SHIFT);
       *xmem += x[1][end-1];
    }
+
+   float ac[5], lpc[4], mem[4]={0,0,0,0};
+   _celt_autocorr(x_lp, ac, NULL, 0,
+                  4, len>>1);
+
+   /* Noise floor -40 dB */
+#ifdef FIXED_POINT
+   ac[0] += SHR32(ac[0],13);
+#else
+   ac[0] *= 1.0001f;
+#endif
+   /* Lag windowing */
+   for (i=1;i<=4;i++)
+   {
+      /*ac[i] *= exp(-.5*(2*M_PI*.002*i)*(2*M_PI*.002*i));*/
+#ifdef FIXED_POINT
+      ac[i] -= MULT16_32_Q15(2*i*i, ac[i]);
+#else
+      ac[i] -= ac[i]*(.008f*i)*(.008f*i);
+#endif
+   }
+
+   _celt_lpc(lpc, ac, 4);
+   float tmp=1;
+   for (i=0;i<4;i++)
+   {
+      tmp *= .9;
+      lpc[i] *= tmp;
+   }
+   fir(x_lp, lpc, x_lp, len>>1, 4, mem);
+
+   mem[0]=0;
+   lpc[0]=.8;
+   fir(x_lp, lpc, x_lp, len>>1, 1, mem);
+
 }
 
 void pitch_search(const CELTMode *m, const celt_word16 * restrict x_lp, celt_word16 * restrict y,
