@@ -364,33 +364,36 @@ static void comb_filter(celt_word32 *y, celt_word32 *x, int T0, int T1, int N,
 {
    int i;
    /* printf ("%d %d %f %f\n", T0, T1, g0, g1); */
+   celt_word16 g00, g01, g02, g10, g11, g12;
+   celt_word16 t0, t1, t2;
+   /* zeros at theta = +/- 5*pi/6 */
+   t0 = QCONST16(.26795f, 15);
+   t1 = QCONST16(.46410f, 15);
+   t2 = QCONST16(.26795f, 15);
+   g00 = MULT16_16_Q15(g0, t0);
+   g01 = MULT16_16_Q15(g0, t1);
+   g02 = MULT16_16_Q15(g0, t2);
+   g10 = MULT16_16_Q15(g1, t0);
+   g11 = MULT16_16_Q15(g1, t1);
+   g12 = MULT16_16_Q15(g1, t2);
    for (i=0;i<overlap;i++)
    {
       celt_word16 f;
       f = MULT16_16_Q15(window[i],window[i]);
-      y[i] += MULT16_32_Q15(MULT16_16_Q15((Q15ONE-f),g0),x[i-T0])
-                     + MULT16_32_Q15(MULT16_16_Q15(f,g1),x[i-T1]);
+      y[i] = x[i]
+               + MULT16_32_Q15(MULT16_16_Q15((Q15ONE-f),g01),x[i-T0])
+               + MULT16_32_Q15(MULT16_16_Q15((Q15ONE-f),g00),x[i-T0-1])
+               + MULT16_32_Q15(MULT16_16_Q15((Q15ONE-f),g02),x[i-T0+1])
+               + MULT16_32_Q15(MULT16_16_Q15(f,g11),x[i-T1])
+               + MULT16_32_Q15(MULT16_16_Q15(f,g10),x[i-T1-1])
+               + MULT16_32_Q15(MULT16_16_Q15(f,g12),x[i-T1+1]);
+
    }
    for (i=overlap;i<N;i++)
-      y[i] += MULT16_32_Q15(g1,x[i-T1]);
-}
-
-static void comb_filter2(celt_word32 *y, celt_word32 *x, int T0, int T1, int N,
-      int C, celt_word16 g0, celt_word16 g1, const celt_word16 *window, int overlap)
-{
-   int i;
-   /* printf ("%d %d %f %f\n", T0, T1, g0, g1); */
-   for (i=0;i<overlap;i++)
-      y[i] += MULT16_32_Q15(g0,x[i-T0]);
-   for (i=overlap;i<2*overlap;i++)
-   {
-      celt_word16 f;
-      f = MULT16_16_Q15(window[i-overlap],window[i-overlap]);
-      y[i] += MULT16_32_Q15(MULT16_16_Q15((Q15ONE-f),g0),x[i-T0])
-                     + MULT16_32_Q15(MULT16_16_Q15(f,g1),x[i-T1]);
-   }
-   for (i=2*overlap;i<N;i++)
-      y[i] += MULT16_32_Q15(g1,x[i-T1]);
+      y[i] = x[i]
+               + MULT16_32_Q15(g11,x[i-T1])
+               + MULT16_32_Q15(g10,x[i-T1-1])
+               + MULT16_32_Q15(g12,x[i-T1+1]);
 }
 
 static const signed char tf_select_table[4][8] = {
@@ -1699,8 +1702,12 @@ int celt_decode_with_ec_float(CELTDecoder * restrict st, const unsigned char *da
    compute_inv_mdcts(st->mode, shortBlocks, freq, out_syn, overlap_mem, C, LM);
 
    for (c=0;c<C;c++)
-      comb_filter2(out_syn[c], out_syn[c], st->postfilter_period, postfilter_pitch, N, C,
+   {
+      comb_filter(out_syn[c], out_syn[c], st->postfilter_period, st->postfilter_period, st->overlap, C,
+            st->postfilter_gain, st->postfilter_gain, NULL, 0);
+      comb_filter(out_syn[c]+st->overlap, out_syn[c]+st->overlap, st->postfilter_period, postfilter_pitch, N-st->overlap, C,
             st->postfilter_gain, postfilter_gain, st->mode->window, st->mode->overlap);
+   }
    st->postfilter_period = postfilter_pitch;
    st->postfilter_gain = postfilter_gain;
 
