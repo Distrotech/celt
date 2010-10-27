@@ -252,6 +252,8 @@ float remove_doubling(celt_word16 *x, int maxperiod, int N, int *_T0,
    float g, g0;
    float pg;
    float xy,xx,yy;
+   float xcorr[3];
+   int offset;
 
    maxperiod /= 2;
    *_T0 /= 2;
@@ -311,10 +313,24 @@ float remove_doubling(celt_word16 *x, int maxperiod, int N, int *_T0,
          T = T1;
       }
    }
+   /* FIXME: Handle the case where T = maxperiod */
+   for (k=0;k<3;k++)
+   {
+      int T1 = T+k-1;
+      xy = 0;
+      for (i=0;i<N;i++)
+         xy += x[i]*x[i-T1];
+      xcorr[k] = xy;
+   }
+   if ((xcorr[2]-xcorr[0]) > MULT16_32_Q15(QCONST16(.7f,15),xcorr[1]-xcorr[0]))
+      offset = 1;
+   else if ((xcorr[0]-xcorr[2]) > MULT16_32_Q15(QCONST16(.7f,15),xcorr[1]-xcorr[2]))
+      offset = -1;
+   else
+      offset = 0;
    if (pg > g)
       pg = g;
-   /*printf ("%d %d ", T0, T);*/
-   *_T0 = 2*T;
+   *_T0 = 2*T+offset;
    return pg;
 }
 

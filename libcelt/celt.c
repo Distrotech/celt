@@ -359,6 +359,7 @@ static void deemphasis(celt_sig *in[], celt_word16 *pcm, int N, int _C, const ce
    }
 }
 
+/* FIXME: Handle the case where T = maxperiod */
 static void comb_filter(celt_word32 *y, celt_word32 *x, int T0, int T1, int N,
       int C, celt_word16 g0, celt_word16 g1, const celt_word16 *window, int overlap)
 {
@@ -766,7 +767,7 @@ int celt_encode_with_ec_float(CELTEncoder * restrict st, const celt_sig * pcm, c
             pitch_index = COMBFILTER_MAXPERIOD;
          if (pitch_index<40)
             gain1 = 0;
-         gain1 = .5*gain1;
+         gain1 = .7*gain1;
          if (gain1 > .5)
             gain1 = .5;
          if (fabs(gain1-st->prefilter_gain)<.2)
