@@ -245,6 +245,7 @@ void pitch_search(const CELTMode *m, const celt_word16 * restrict x_lp, celt_wor
    /*printf ("%d\n", *pitch);*/
 }
 
+int second_check[16] = {0, 0, 3, 2, 3, 2, 5, 2, 3, 2, 3, 2, 5, 2, 3, 2};
 float remove_doubling(celt_word16 *x, int maxperiod, int N, int *_T0,
       int prev_period, celt_word16 prev_gain)
 {
@@ -286,11 +287,9 @@ float remove_doubling(celt_word16 *x, int maxperiod, int N, int *_T0,
             T1b = T0;
          else
             T1b = T0+T1;
-      } else if (k==4)
+      } else
       {
-         T1b = (6*T0+k)/(2*k);
-      } else {
-         T1b = (4*T0+k)/(2*k);
+         T1b = (2*second_check[k]*T0+k)/(2*k);
       }
       xy=yy=0;
       for (i=0;i<N;i++)
@@ -303,10 +302,10 @@ float remove_doubling(celt_word16 *x, int maxperiod, int N, int *_T0,
       }
       g1 = xy/sqrt(1+2*xx*yy);
       if (abs(T1-prev_period)<=2)
-         cont += 2*prev_gain;
-      if (abs(T1-prev_period)<=4)
          cont += prev_gain;
-      if (g1+cont > .7*g0 || g1+cont > .6)
+      else if (abs(T1-prev_period)<=4)
+         cont += .5*prev_gain;
+      if (g1+cont > .85*g0 || g1+cont > .5)
       {
          pg = xy/(1+yy);
          g = g1;
