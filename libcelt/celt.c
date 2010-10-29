@@ -764,30 +764,33 @@ int celt_encode_with_ec_float(CELTEncoder * restrict st, const celt_sig * pcm, c
          gain1 = remove_doubling(pitch_buf, COMBFILTER_MAXPERIOD, COMBFILTER_MINPERIOD,
                N, &pitch_index, st->prefilter_period, st->prefilter_gain);
       }
-      /*printf("%d %d\n", pitch_index, gain1);*/
       if (pitch_index > COMBFILTER_MAXPERIOD)
          pitch_index = COMBFILTER_MAXPERIOD;
       gain1 = MULT16_16_Q15(QCONST16(.7f,15),gain1);
-      if (gain1 > QCONST16(.5f,15))
-         gain1 = QCONST16(.5f,15);
-      if (fabs(gain1-st->prefilter_gain)<QCONST16(.2,15))
+      if (gain1 > QCONST16(.6f,15))
+         gain1 = QCONST16(.6f,15);
+      if (fabs(gain1-st->prefilter_gain)<QCONST16(.1,15))
          gain1=st->prefilter_gain;
-      if (gain1<QCONST16(.1f,16))
+      if (gain1<QCONST16(.2f,16))
       {
          ec_enc_bit_prob(enc, 0, 32768);
          gain1 = 0;
       } else {
          int qg;
+         int octave;
 #ifdef FIXED_POINT
-         qg = ((gain1+2048)>>12)-1;
+         qg = ((gain1+2048)>>12)-2;
 #else
-         qg = floor(.5+gain1*8)-1;
+         qg = floor(.5+gain1*8)-2;
 #endif
          ec_enc_bit_prob(enc, 1, 32768);
-         ec_enc_uint(enc, pitch_index-1, COMBFILTER_MAXPERIOD);
+         octave = EC_ILOG(pitch_index)-6;
+         ec_enc_uint(enc, octave, 5);
+         ec_enc_bits(enc, pitch_index-(32<<octave), 5+octave);
          ec_enc_bits(enc, qg, 2);
-         gain1 = QCONST16(.125f,15)*(qg+1);
+         gain1 = QCONST16(.125f,15)*(qg+2);
       }
+      /*printf("%d %f\n", pitch_index, gain1);*/
 
       for (c=0;c<C;c++)
       {
@@ -1623,10 +1626,11 @@ int celt_decode_with_ec_float(CELTDecoder * restrict st, const unsigned char *da
 
    if (ec_dec_bit_prob(dec, 32768))
    {
-      int qg;
-      postfilter_pitch = 1+ec_dec_uint(dec, COMBFILTER_MAXPERIOD);
+      int qg, octave;
+      octave = ec_dec_uint(dec, 5);
+      postfilter_pitch = (32<<octave)+ec_dec_bits(dec, 5+octave);
       qg = ec_dec_bits(dec, 2);
-      postfilter_gain = QCONST16(.125f,15)*(qg+1);
+      postfilter_gain = QCONST16(.125f,15)*(qg+2);
    } else {
       postfilter_gain = 0;
       postfilter_pitch = 0;
