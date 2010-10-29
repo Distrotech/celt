@@ -1477,6 +1477,10 @@ static void celt_decode_lost(CELTDecoder * restrict st, celt_word16 * restrict p
          }
       }
 
+      /* Apply post-filter to the MDCT overlap of the previous frame */
+      comb_filter(out_mem[c]+MAX_PERIOD, out_mem[c]+MAX_PERIOD, st->postfilter_period, st->postfilter_period, st->overlap, C,
+                  st->postfilter_gain, st->postfilter_gain, NULL, 0);
+
       for (i=0;i<MAX_PERIOD+st->mode->overlap-N;i++)
          out_mem[c][i] = out_mem[c][N+i];
 
@@ -1496,6 +1500,12 @@ static void celt_decode_lost(CELTDecoder * restrict st, celt_word16 * restrict p
       }
       for (i=0;i<N-overlap;i++)
          out_mem[c][MAX_PERIOD-N+overlap+i] = e[overlap+i];
+
+      /* Apply pre-filter to the MDCT overlap for the next frame (post-filter will be applied then) */
+      comb_filter(e, out_mem[c]+MAX_PERIOD, st->postfilter_period, st->postfilter_period, st->overlap, C,
+                  -st->postfilter_gain, -st->postfilter_gain, NULL, 0);
+      for (i=0;i<overlap;i++)
+         out_mem[c][MAX_PERIOD+i] = e[i];
    }
 
    {
