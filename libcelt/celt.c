@@ -54,7 +54,8 @@
 #include "plc.h"
 
 static const int trim_cdf[7] = {0, 4, 10, 23, 119, 125, 128};
-#define COMBFILTER_MAXPERIOD 480
+#define COMBFILTER_MAXPERIOD 1024
+#define COMBFILTER_MINPERIOD 32
 
 /** Encoder state 
  @brief Encoder state
@@ -757,32 +758,35 @@ int celt_encode_with_ec_float(CELTEncoder * restrict st, const celt_sig * pcm, c
          pitch_downsample(pre, pitch_buf, COMBFILTER_MAXPERIOD+N, COMBFILTER_MAXPERIOD+N,
                           C, mem0, mem1);
          pitch_search(st->mode, pitch_buf+(COMBFILTER_MAXPERIOD>>1), pitch_buf, N,
-               COMBFILTER_MAXPERIOD-50, &pitch_index, &tmp, 1<<LM);
+               COMBFILTER_MAXPERIOD-COMBFILTER_MINPERIOD, &pitch_index, &tmp, 1<<LM);
          pitch_index = COMBFILTER_MAXPERIOD-pitch_index;
 
-         gain1 = remove_doubling(pitch_buf, COMBFILTER_MAXPERIOD, N, &pitch_index,
-               st->prefilter_period, st->prefilter_gain);
-         /*printf("%d %d\n", pitch_index, gain1);*/
-         if (pitch_index > COMBFILTER_MAXPERIOD)
-            pitch_index = COMBFILTER_MAXPERIOD;
-         if (pitch_index<40)
-            gain1 = 0;
-         gain1 = .7*gain1;
-         if (gain1 > QCONST16(.5f,15))
-            gain1 = QCONST16(.5f,15);
-         if (fabs(gain1-st->prefilter_gain)<QCONST16(.2,15))
-            gain1=st->prefilter_gain;
+         gain1 = remove_doubling(pitch_buf, COMBFILTER_MAXPERIOD, COMBFILTER_MINPERIOD,
+               N, &pitch_index, st->prefilter_period, st->prefilter_gain);
       }
+      /*printf("%d %d\n", pitch_index, gain1);*/
+      if (pitch_index > COMBFILTER_MAXPERIOD)
+         pitch_index = COMBFILTER_MAXPERIOD;
+      gain1 = MULT16_16_Q15(QCONST16(.7f,15),gain1);
+      if (gain1 > QCONST16(.5f,15))
+         gain1 = QCONST16(.5f,15);
+      if (fabs(gain1-st->prefilter_gain)<QCONST16(.2,15))
+         gain1=st->prefilter_gain;
       if (gain1<QCONST16(.1f,16))
       {
          ec_enc_bit_prob(enc, 0, 32768);
          gain1 = 0;
       } else {
-         int qg = floor(.5+gain1*(1.f/Q15ONE)*8)-1;
+         int qg;
+#ifdef FIXED_POINT
+         qg = ((gain1+2048)>>12)-1;
+#else
+         qg = floor(.5+gain1*8)-1;
+#endif
          ec_enc_bit_prob(enc, 1, 32768);
          ec_enc_uint(enc, pitch_index-1, COMBFILTER_MAXPERIOD);
          ec_enc_bits(enc, qg, 2);
-         gain1 = Q15ONE*(.125+.125*qg);
+         gain1 = QCONST16(.125f,15)*(qg+1);
       }
 
       for (c=0;c<C;c++)
@@ -1622,7 +1626,7 @@ int celt_decode_with_ec_float(CELTDecoder * restrict st, const unsigned char *da
       int qg;
       postfilter_pitch = 1+ec_dec_uint(dec, COMBFILTER_MAXPERIOD);
       qg = ec_dec_bits(dec, 2);
-      postfilter_gain = Q15ONE*(.125+.125*qg);
+      postfilter_gain = QCONST16(.125f,15)*(qg+1);
    } else {
       postfilter_gain = 0;
       postfilter_pitch = 0;

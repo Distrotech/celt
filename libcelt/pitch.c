@@ -103,14 +103,14 @@ void pitch_downsample(celt_sig * restrict x[], celt_word16 * restrict x_lp, int 
    int i;
    const int C = CHANNELS(_C);
    for (i=1;i<len>>1;i++)
-      x_lp[i] = SHR32(HALF32(HALF32(x[0][(2*i-1)]+x[0][(2*i+1)])+x[0][2*i]), SIG_SHIFT);
-   x_lp[0] = SHR32(HALF32(HALF32(*xmem+x[0][1])+x[0][0]), SIG_SHIFT);
+      x_lp[i] = SHR32(HALF32(HALF32(x[0][(2*i-1)]+x[0][(2*i+1)])+x[0][2*i]), SIG_SHIFT+2);
+   x_lp[0] = SHR32(HALF32(HALF32(*xmem+x[0][1])+x[0][0]), SIG_SHIFT+2);
    *xmem = x[0][end-1];
    if (C==2)
    {
       for (i=1;i<len>>1;i++)
-      x_lp[i] = SHR32(HALF32(HALF32(x[1][(2*i-1)]+x[1][(2*i+1)])+x[1][2*i]), SIG_SHIFT);
-      x_lp[0] += SHR32(HALF32(HALF32(x[1][1])+x[1][0]), SIG_SHIFT);
+      x_lp[i] = SHR32(HALF32(HALF32(x[1][(2*i-1)]+x[1][(2*i+1)])+x[1][2*i]), SIG_SHIFT+2);
+      x_lp[0] += SHR32(HALF32(HALF32(x[1][1])+x[1][0]), SIG_SHIFT+2);
       *xmem += x[1][end-1];
    }
 
@@ -146,7 +146,7 @@ void pitch_downsample(celt_sig * restrict x[], celt_word16 * restrict x_lp, int 
    fir(x_lp, lpc, x_lp, len>>1, 4, mem);
 
    mem[0]=0;
-   lpc[0]=.8;
+   lpc[0]=QCONST16(.8,15);
    fir(x_lp, lpc, x_lp, len>>1, 1, mem);
 
 }
@@ -242,8 +242,8 @@ void pitch_search(const CELTMode *m, const celt_word16 * restrict x_lp, celt_wor
 }
 
 int second_check[16] = {0, 0, 3, 2, 3, 2, 5, 2, 3, 2, 3, 2, 5, 2, 3, 2};
-celt_word16 remove_doubling(celt_word16 *x, int maxperiod, int N, int *_T0,
-      int prev_period, celt_word16 prev_gain)
+celt_word16 remove_doubling(celt_word16 *x, int maxperiod, int minperiod,
+      int N, int *_T0, int prev_period, celt_word16 prev_gain)
 {
    int k, i, T, T0, k0;
    float g, g0;
@@ -253,10 +253,13 @@ celt_word16 remove_doubling(celt_word16 *x, int maxperiod, int N, int *_T0,
    int offset;
 
    maxperiod /= 2;
+   minperiod /= 2;
    *_T0 /= 2;
    prev_period /= 2;
    N /= 2;
    x += maxperiod;
+   if (*_T0>=maxperiod)
+      *_T0=maxperiod-1;
 
    T = T0 = *_T0;
    xx=xy=yy=0;
@@ -269,14 +272,16 @@ celt_word16 remove_doubling(celt_word16 *x, int maxperiod, int N, int *_T0,
    g = g0 = xy/sqrt(1+xx*1.f*yy);
    pg = xy/(1.f+yy);
    k0 = 1;
+   /* Look for any pitch at T/k */
    for (k=2;k<=15;k++)
    {
       int T1, T1b;
       float g1;
       float cont=0;
       T1 = (2*T0+k)/(2*k);
-      if (T1 < 25)
+      if (T1 < minperiod)
          break;
+      /* Look for another strong correlation at T1b */
       if (k==2)
       {
          if (T1+T0>maxperiod)
@@ -326,6 +331,9 @@ celt_word16 remove_doubling(celt_word16 *x, int maxperiod, int N, int *_T0,
    if (pg > g)
       pg = g;
    *_T0 = 2*T+offset;
+
+   if (*_T0<minperiod)
+      *_T0=minperiod;
    return Q15ONE*pg;
 }
 
