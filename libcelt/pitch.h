@@ -47,6 +47,6 @@ void pitch_search(const CELTMode *m, const celt_word16 * restrict x_lp, celt_wor
                   int len, int max_pitch, int *pitch, celt_sig *xmem, int M);
 
 float remove_doubling(celt_word16 *x, int COMBFILTER_MAXPERIOD, int N, int *T0,
-      int prev_period, celt_word16 prev_gain);
+      int prev_period, float prev_gain);
 
 #endif

@@ -79,7 +79,7 @@ struct CELTEncoder {
    int tonal_average;
 
    int prefilter_period;
-   celt_word16 prefilter_gain;
+   float prefilter_gain;
 
    /* VBR-related parameters */
    celt_int32 vbr_reservoir;

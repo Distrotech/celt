@@ -114,7 +114,8 @@ void pitch_downsample(celt_sig * restrict x[], celt_word16 * restrict x_lp, int 
       *xmem += x[1][end-1];
    }
 
-   float ac[5], lpc[4], mem[4]={0,0,0,0};
+   celt_word32 ac[5];
+   celt_word16 lpc[4], mem[4]={0,0,0,0};
    _celt_autocorr(x_lp, ac, NULL, 0,
                   4, len>>1);
 
@@ -247,7 +248,7 @@ void pitch_search(const CELTMode *m, const celt_word16 * restrict x_lp, celt_wor
 
 int second_check[16] = {0, 0, 3, 2, 3, 2, 5, 2, 3, 2, 3, 2, 5, 2, 3, 2};
 float remove_doubling(celt_word16 *x, int maxperiod, int N, int *_T0,
-      int prev_period, celt_word16 prev_gain)
+      int prev_period, float prev_gain)
 {
    int k, i, T, T0, k0;
    float g, g0;
