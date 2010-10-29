@@ -79,7 +79,7 @@ struct CELTEncoder {
    int tonal_average;
 
    int prefilter_period;
-   float prefilter_gain;
+   celt_word16 prefilter_gain;
 
    /* VBR-related parameters */
    celt_int32 vbr_reservoir;
@@ -721,7 +721,7 @@ int celt_encode_with_ec_float(CELTEncoder * restrict st, const celt_sig * pcm, c
       VARDECL(celt_sig, _pre);
       celt_sig *pre[2];
       int pitch_index;
-      float gain1 = .0;
+      celt_word16 gain1 = .0;
       SAVE_STACK;
       c = 0;
       ALLOC(_pre, C*(N+COMBFILTER_MAXPERIOD), celt_sig);
@@ -762,28 +762,27 @@ int celt_encode_with_ec_float(CELTEncoder * restrict st, const celt_sig * pcm, c
 
          gain1 = remove_doubling(pitch_buf, COMBFILTER_MAXPERIOD, N, &pitch_index,
                st->prefilter_period, st->prefilter_gain);
-         /*printf("%d %f\n", pitch_index, gain1);*/
+         /*printf("%d %d\n", pitch_index, gain1);*/
          if (pitch_index > COMBFILTER_MAXPERIOD)
             pitch_index = COMBFILTER_MAXPERIOD;
          if (pitch_index<40)
             gain1 = 0;
          gain1 = .7*gain1;
-         if (gain1 > .5)
-            gain1 = .5;
-         if (fabs(gain1-st->prefilter_gain)<.2)
+         if (gain1 > QCONST16(.5f,15))
+            gain1 = QCONST16(.5f,15);
+         if (fabs(gain1-st->prefilter_gain)<QCONST16(.2,15))
             gain1=st->prefilter_gain;
       }
-      //printf ("%d\n", gain1<.1);
-      if (gain1<.1)
+      if (gain1<QCONST16(.1f,16))
       {
          ec_enc_bit_prob(enc, 0, 32768);
          gain1 = 0;
       } else {
-         int qg = floor(.5+gain1*8)-1;
+         int qg = floor(.5+gain1*(1.f/Q15ONE)*8)-1;
          ec_enc_bit_prob(enc, 1, 32768);
          ec_enc_uint(enc, pitch_index-1, COMBFILTER_MAXPERIOD);
          ec_enc_bits(enc, qg, 2);
-         gain1 = .125+.125*qg;
+         gain1 = Q15ONE*(.125+.125*qg);
       }
 
       for (c=0;c<C;c++)
@@ -1623,7 +1622,7 @@ int celt_decode_with_ec_float(CELTDecoder * restrict st, const unsigned char *da
       int qg;
       postfilter_pitch = 1+ec_dec_uint(dec, COMBFILTER_MAXPERIOD);
       qg = ec_dec_bits(dec, 2);
-      postfilter_gain = .125+.125*qg;
+      postfilter_gain = Q15ONE*(.125+.125*qg);
    } else {
       postfilter_gain = 0;
       postfilter_pitch = 0;

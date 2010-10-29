@@ -238,22 +238,17 @@ void pitch_search(const CELTMode *m, const celt_word16 * restrict x_lp, celt_wor
    }
    *pitch = 2*best_pitch[0]-offset;
 
-   //CELT_MOVE(y, y+(N>>1), (lag-N)>>1);
-   //CELT_MOVE(y+((lag-N)>>1), x_lp, N>>1);
-
    RESTORE_STACK;
-
-   /*printf ("%d\n", *pitch);*/
 }
 
 int second_check[16] = {0, 0, 3, 2, 3, 2, 5, 2, 3, 2, 3, 2, 5, 2, 3, 2};
-float remove_doubling(celt_word16 *x, int maxperiod, int N, int *_T0,
-      int prev_period, float prev_gain)
+celt_word16 remove_doubling(celt_word16 *x, int maxperiod, int N, int *_T0,
+      int prev_period, celt_word16 prev_gain)
 {
    int k, i, T, T0, k0;
    float g, g0;
    float pg;
-   float xy,xx,yy;
+   celt_word32 xy,xx,yy;
    float xcorr[3];
    int offset;
 
@@ -267,12 +262,12 @@ float remove_doubling(celt_word16 *x, int maxperiod, int N, int *_T0,
    xx=xy=yy=0;
    for (i=0;i<N;i++)
    {
-      xy += x[i]*x[i-T0];
-      xx += x[i]*x[i];
-      yy += x[i-T0]*x[i-T0];
+      xy = MAC16_16(xy, x[i], x[i-T0]);
+      xx = MAC16_16(xx, x[i], x[i]);
+      yy = MAC16_16(yy, x[i-T0],x[i-T0]);
    }
-   g = g0 = xy/sqrt(1+xx*yy);
-   pg = xy/(1+yy);
+   g = g0 = xy/sqrt(1+xx*1.f*yy);
+   pg = xy/(1.f+yy);
    k0 = 1;
    for (k=2;k<=15;k++)
    {
@@ -295,20 +290,20 @@ float remove_doubling(celt_word16 *x, int maxperiod, int N, int *_T0,
       xy=yy=0;
       for (i=0;i<N;i++)
       {
-         xy += x[i]*x[i-T1];
-         yy += x[i-T1]*x[i-T1];
+         xy = MAC16_16(xy, x[i], x[i-T1]);
+         yy = MAC16_16(yy, x[i-T1], x[i-T1]);
 
-         xy += x[i]*x[i-T1b];
-         yy += x[i-T1b]*x[i-T1b];
+         xy = MAC16_16(xy, x[i], x[i-T1b]);
+         yy = MAC16_16(yy, x[i-T1b], x[i-T1b]);
       }
-      g1 = xy/sqrt(1+2*xx*yy);
+      g1 = xy/sqrt(1+2*xx*1.f*yy);
       if (abs(T1-prev_period)<=2)
-         cont += prev_gain;
+         cont += prev_gain*(1.f/Q15ONE);
       else if (abs(T1-prev_period)<=4)
-         cont += .5*prev_gain;
+         cont += .5*prev_gain*(1.f/Q15ONE);
       if (g1+cont > .85*g0 || g1+cont > .5)
       {
-         pg = xy/(1+yy);
+         pg = xy/(1.f+yy);
          g = g1;
          T = T1;
       }
@@ -331,6 +326,6 @@ float remove_doubling(celt_word16 *x, int maxperiod, int N, int *_T0,
    if (pg > g)
       pg = g;
    *_T0 = 2*T+offset;
-   return pg;
+   return Q15ONE*pg;
 }
 

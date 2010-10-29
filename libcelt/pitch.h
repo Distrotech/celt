@@ -46,7 +46,7 @@ void pitch_downsample(celt_sig * restrict x[], celt_word16 * restrict x_lp, int 
 void pitch_search(const CELTMode *m, const celt_word16 * restrict x_lp, celt_word16 * restrict y,
                   int len, int max_pitch, int *pitch, celt_sig *xmem, int M);
 
-float remove_doubling(celt_word16 *x, int COMBFILTER_MAXPERIOD, int N, int *T0,
-      int prev_period, float prev_gain);
+celt_word16 remove_doubling(celt_word16 *x, int COMBFILTER_MAXPERIOD, int N, int *T0,
+      int prev_period, celt_word16 prev_gain);
 
 #endif
