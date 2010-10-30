@@ -146,7 +146,7 @@ void pitch_downsample(celt_sig * restrict x[], celt_word16 * restrict x_lp, int 
    fir(x_lp, lpc, x_lp, len>>1, 4, mem);
 
    mem[0]=0;
-   lpc[0]=QCONST16(.8,15);
+   lpc[0]=QCONST16(.8,12);
    fir(x_lp, lpc, x_lp, len>>1, 1, mem);
 
 }
@@ -301,7 +301,7 @@ celt_word16 remove_doubling(celt_word16 *x, int maxperiod, int minperiod,
          xy = MAC16_16(xy, x[i], x[i-T1b]);
          yy = MAC16_16(yy, x[i-T1b], x[i-T1b]);
       }
-      g1 = xy/sqrt(1+2*xx*1.f*yy);
+      g1 = xy/sqrt(1+2.f*xx*1.f*yy);
       if (abs(T1-prev_period)<=2)
          cont += prev_gain*(1.f/Q15ONE);
       else if (abs(T1-prev_period)<=4)

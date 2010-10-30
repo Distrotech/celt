@@ -80,9 +80,9 @@ celt_word32 frac_div32(celt_word32 a, celt_word32 b)
 
    /* 16-bit reciprocal */
    rcp = ROUND16(celt_rcp(ROUND16(b,16)),3);
-   result = MULT16_32_Q15(rcp, a);
+   result = SHL32(MULT16_32_Q15(rcp, a),2);
    rem = a-MULT32_32_Q31(result, b);
-   result += MULT16_32_Q15(rcp, rem);
+   result += SHL32(MULT16_32_Q15(rcp, rem),2);
    return result;
 }
 
