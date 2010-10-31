@@ -771,7 +771,7 @@ int celt_encode_with_ec_float(CELTEncoder * restrict st, const celt_sig * pcm, c
          gain1 = QCONST16(.6f,15);
       if (fabs(gain1-st->prefilter_gain)<QCONST16(.1,15))
          gain1=st->prefilter_gain;
-      if (gain1<QCONST16(.2f,16))
+      if (gain1<QCONST16(.2f,15))
       {
          ec_enc_bit_prob(enc, 0, 32768);
          gain1 = 0;
@@ -794,8 +794,6 @@ int celt_encode_with_ec_float(CELTEncoder * restrict st, const celt_sig * pcm, c
 
       for (c=0;c<C;c++)
       {
-
-
          CELT_COPY(in+c*(N+st->overlap), st->in_mem+c*(st->overlap), st->overlap);
          comb_filter(in+c*(N+st->overlap)+st->overlap, pre[c]+COMBFILTER_MAXPERIOD,
                st->prefilter_period, pitch_index, N, C, -st->prefilter_gain, -gain1, st->mode->window, st->mode->overlap);
