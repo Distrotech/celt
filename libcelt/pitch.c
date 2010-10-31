@@ -249,7 +249,8 @@ celt_word16 remove_doubling(celt_word16 *x, int maxperiod, int minperiod,
    float g, g0;
    float pg;
    celt_word32 xy,xx,yy;
-   float xcorr[3];
+   celt_word32 xcorr[3];
+   celt_word32 best_xy, best_yy;
    int offset;
 
    maxperiod /= 2;
@@ -269,8 +270,9 @@ celt_word16 remove_doubling(celt_word16 *x, int maxperiod, int minperiod,
       xx = MAC16_16(xx, x[i], x[i]);
       yy = MAC16_16(yy, x[i-T0],x[i-T0]);
    }
-   g = g0 = xy/sqrt(1+xx*1.f*yy);
-   pg = xy/(1.f+yy);
+   best_xy = xy;
+   best_yy = yy;
+   g0 = xy/sqrt(1+xx*1.f*yy);
    k0 = 1;
    /* Look for any pitch at T/k */
    for (k=2;k<=15;k++)
@@ -308,18 +310,23 @@ celt_word16 remove_doubling(celt_word16 *x, int maxperiod, int minperiod,
          cont += .5*prev_gain*(1.f/Q15ONE);
       if (g1+cont > .85*g0 || g1+cont > .5)
       {
-         pg = xy/(1.f+yy);
-         g = g1;
+         best_xy = xy;
+         best_yy = yy;
          T = T1;
       }
    }
+   pg = best_xy/(1.f+best_yy);
+   if (T != T0)
+      xx = 2*xx;
+   g = best_xy/sqrt(1+xx*1.f*best_yy);
+
    /* FIXME: Handle the case where T = maxperiod */
    for (k=0;k<3;k++)
    {
       int T1 = T+k-1;
       xy = 0;
       for (i=0;i<N;i++)
-         xy += x[i]*x[i-T1];
+         xy = MAC16_16(xy, x[i], x[i-T1]);
       xcorr[k] = xy;
    }
    if ((xcorr[2]-xcorr[0]) > MULT16_32_Q15(QCONST16(.7f,15),xcorr[1]-xcorr[0]))
