@@ -272,7 +272,18 @@ celt_word16 remove_doubling(celt_word16 *x, int maxperiod, int minperiod,
    }
    best_xy = xy;
    best_yy = yy;
-   g0 = xy/sqrt(1+xx*1.f*yy);
+#ifdef FIXED_POINT
+      {
+         celt_word32 x2y2;
+         int sh, t;
+         x2y2 = HALF32(MULT32_32_Q31(xx,yy));
+         sh = celt_ilog2(x2y2)>>1;
+         t = VSHR32(x2y2, 2*(sh-7));
+         g = g0 = VSHR32(MULT16_32_Q15(celt_rsqrt_norm(t), xy),sh+1);
+      }
+#else
+      g = g0 = xy/sqrt(1+xx*yy);
+#endif
    k0 = 1;
    /* Look for any pitch at T/k */
    for (k=2;k<=15;k++)
@@ -303,22 +314,32 @@ celt_word16 remove_doubling(celt_word16 *x, int maxperiod, int minperiod,
          xy = MAC16_16(xy, x[i], x[i-T1b]);
          yy = MAC16_16(yy, x[i-T1b], x[i-T1b]);
       }
+#ifdef FIXED_POINT
+      {
+         celt_word32 x2y2;
+         int sh, t;
+         x2y2 = MULT32_32_Q31(xx,yy);
+         sh = celt_ilog2(x2y2)>>1;
+         t = VSHR32(x2y2, 2*(sh-7));
+         g1 = VSHR32(MULT16_32_Q15(celt_rsqrt_norm(t), xy),sh+1);
+      }
+#else
       g1 = xy/sqrt(1+2.f*xx*1.f*yy);
+#endif
       if (abs(T1-prev_period)<=2)
-         cont += prev_gain*(1.f/Q15ONE);
+         cont += prev_gain;
       else if (abs(T1-prev_period)<=4)
-         cont += .5*prev_gain*(1.f/Q15ONE);
-      if (g1+cont > .85*g0 || g1+cont > .5)
+         cont += .5*prev_gain;
+      if (g1+cont > .85*g0 || g1+cont > QCONST16(.5f,15))
       {
          best_xy = xy;
          best_yy = yy;
          T = T1;
+         g = g1;
       }
    }
    pg = best_xy/(1.f+best_yy);
-   if (T != T0)
-      xx = 2*xx;
-   g = best_xy/sqrt(1+xx*1.f*best_yy);
+   g /= Q15ONE;
 
    /* FIXME: Handle the case where T = maxperiod */
    for (k=0;k<3;k++)
