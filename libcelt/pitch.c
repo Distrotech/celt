@@ -246,8 +246,8 @@ celt_word16 remove_doubling(celt_word16 *x, int maxperiod, int minperiod,
       int N, int *_T0, int prev_period, celt_word16 prev_gain)
 {
    int k, i, T, T0, k0;
-   float g, g0;
-   float pg;
+   celt_word16 g, g0;
+   celt_word16 pg;
    celt_word32 xy,xx,yy;
    celt_word32 xcorr[3];
    celt_word32 best_xy, best_yy;
@@ -338,10 +338,11 @@ celt_word16 remove_doubling(celt_word16 *x, int maxperiod, int minperiod,
          g = g1;
       }
    }
-   pg = best_xy/(1.f+best_yy);
-   g /= Q15ONE;
+   if (best_yy <= best_xy)
+      pg = Q15ONE;
+   else
+      pg = SHR32(frac_div32(best_xy,best_yy+1),16);
 
-   /* FIXME: Handle the case where T = maxperiod */
    for (k=0;k<3;k++)
    {
       int T1 = T+k-1;
@@ -362,6 +363,6 @@ celt_word16 remove_doubling(celt_word16 *x, int maxperiod, int minperiod,
 
    if (*_T0<2*minperiod)
       *_T0=2*minperiod;
-   return Q15ONE*pg;
+   return pg;
 }
 
