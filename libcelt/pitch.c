@@ -137,11 +137,11 @@ void pitch_downsample(celt_sig * restrict x[], celt_word16 * restrict x_lp, int 
    }
 
    _celt_lpc(lpc, ac, 4);
-   float tmp=1;
+   celt_word16 tmp=Q15ONE;
    for (i=0;i<4;i++)
    {
-      tmp *= .9;
-      lpc[i] *= tmp;
+      tmp = MULT16_16_Q15(QCONST16(.9f,15), tmp);
+      lpc[i] = MULT16_16_Q15(lpc[i], tmp);
    }
    fir(x_lp, lpc, x_lp, len>>1, 4, mem);
 
@@ -289,8 +289,8 @@ celt_word16 remove_doubling(celt_word16 *x, int maxperiod, int minperiod,
    for (k=2;k<=15;k++)
    {
       int T1, T1b;
-      float g1;
-      float cont=0;
+      celt_word16 g1;
+      celt_word16 cont=0;
       T1 = (2*T0+k)/(2*k);
       if (T1 < minperiod)
          break;
@@ -327,10 +327,12 @@ celt_word16 remove_doubling(celt_word16 *x, int maxperiod, int minperiod,
       g1 = xy/sqrt(1+2.f*xx*1.f*yy);
 #endif
       if (abs(T1-prev_period)<=2)
-         cont += prev_gain;
+         cont = prev_gain;
       else if (abs(T1-prev_period)<=4)
-         cont += .5*prev_gain;
-      if (g1+cont > .85*g0 || g1+cont > QCONST16(.5f,15))
+         cont = HALF32(prev_gain);
+      else
+         cont = 0;
+      if (g1 > MULT16_16_Q15(QCONST16(.85f,15),g0)-cont || g1 > QCONST16(.5f,15)-cont)
       {
          best_xy = xy;
          best_yy = yy;
