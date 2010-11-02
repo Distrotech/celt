@@ -595,7 +595,7 @@ static int alloc_trim_analysis(const CELTMode *m, const celt_norm *X,
       const celt_word16 *bandLogE, int nbEBands, int LM, int C, int N0)
 {
    int i;
-   int trim_index = 3;
+   int trim_index = 2;
    if (C==2)
    {
       celt_word16 sum = 0; /* Q10 */
