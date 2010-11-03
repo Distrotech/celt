@@ -91,6 +91,10 @@ struct CELTEncoder {
    celt_word32 preemph_memE[2];
    celt_word32 preemph_memD[2];
 
+#ifdef RESYNTH
+   celt_sig syn_mem[2][2*MAX_PERIOD];
+#endif
+
    celt_sig in_mem[1]; /* Size = channels*mode->overlap */
    /* celt_sig prefilter_mem[],  Size = channels*COMBFILTER_PERIOD */
    /* celt_sig overlap_mem[],  Size = channels*mode->overlap */
@@ -682,6 +686,8 @@ int celt_encode_with_ec_float(CELTEncoder * restrict st, const celt_sig * pcm, c
    int codedBands;
    int tf_sum;
    int alloc_trim;
+   int pitch_index=0;
+   celt_word16 gain1 = 0;
    SAVE_STACK;
 
    if (nbCompressedBytes<0 || pcm==NULL)
@@ -721,8 +727,6 @@ int celt_encode_with_ec_float(CELTEncoder * restrict st, const celt_sig * pcm, c
    {
       VARDECL(celt_sig, _pre);
       celt_sig *pre[2];
-      int pitch_index;
-      celt_word16 gain1 = .0;
       SAVE_STACK;
       c = 0;
       ALLOC(_pre, C*(N+COMBFILTER_MAXPERIOD), celt_sig);
@@ -809,8 +813,6 @@ int celt_encode_with_ec_float(CELTEncoder * restrict st, const celt_sig * pcm, c
          }
       }
 
-      st->prefilter_period = pitch_index;
-      st->prefilter_gain = gain1;
       RESTORE_STACK;
    }
 
@@ -1008,10 +1010,10 @@ int celt_encode_with_ec_float(CELTEncoder * restrict st, const celt_sig * pcm, c
 
    quant_energy_finalise(st->mode, st->start, st->end, bandE, oldBandE, error, fine_quant, fine_priority, nbCompressedBytes*8-ec_enc_tell(enc, 0), enc, C);
 
+#ifdef RESYNTH
    /* Re-synthesis of the coded audio if required */
    if (resynth)
    {
-      VARDECL(celt_sig, _out_mem);
       celt_sig *out_mem[2];
       celt_sig *overlap_mem[2];
 
@@ -1024,6 +1026,10 @@ int celt_encode_with_ec_float(CELTEncoder * restrict st, const celt_sig * pcm, c
       /* Synthesis */
       denormalise_bands(st->mode, X, freq, bandE, effEnd, C, M);
 
+      CELT_MOVE(st->syn_mem[0], st->syn_mem[0]+N, MAX_PERIOD);
+      if (C==2)
+         CELT_MOVE(st->syn_mem[1], st->syn_mem[1]+N, MAX_PERIOD);
+
       for (c=0;c<C;c++)
          for (i=0;i<M*st->mode->eBands[st->start];i++)
             freq[c*N+i] = 0;
@@ -1031,15 +1037,22 @@ int celt_encode_with_ec_float(CELTEncoder * restrict st, const celt_sig * pcm, c
          for (i=M*st->mode->eBands[st->end];i<N;i++)
             freq[c*N+i] = 0;
 
-      ALLOC(_out_mem, C*N, celt_sig);
+      out_mem[0] = st->syn_mem[0]+MAX_PERIOD;
+      if (C==2)
+         out_mem[1] = st->syn_mem[1]+MAX_PERIOD;
+
+      for (c=0;c<C;c++)
+         overlap_mem[c] = _overlap_mem + c*st->overlap;
+
+      compute_inv_mdcts(st->mode, shortBlocks, freq, out_mem, overlap_mem, C, LM);
 
       for (c=0;c<C;c++)
       {
-         overlap_mem[c] = _overlap_mem + c*st->overlap;
-         out_mem[c] = _out_mem+c*N;
+         comb_filter(out_mem[c], out_mem[c], st->prefilter_period, st->prefilter_period, st->overlap, C,
+               st->prefilter_gain, st->prefilter_gain, NULL, 0);
+         comb_filter(out_mem[c]+st->overlap, out_mem[c]+st->overlap, st->prefilter_period, pitch_index, N-st->overlap, C,
+               st->prefilter_gain, gain1, st->mode->window, st->mode->overlap);
       }
-
-      compute_inv_mdcts(st->mode, shortBlocks, freq, out_mem, overlap_mem, C, LM);
 
       /* De-emphasis and put everything back at the right place 
          in the synthesis history */
@@ -1048,6 +1061,10 @@ int celt_encode_with_ec_float(CELTEncoder * restrict st, const celt_sig * pcm, c
 
       }
    }
+#endif
+
+   st->prefilter_period = pitch_index;
+   st->prefilter_gain = gain1;
 
    /* If there's any room left (can only happen for very high rates),
       fill it with zeros */
