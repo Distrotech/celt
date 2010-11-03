@@ -650,10 +650,10 @@ static int alloc_trim_analysis(const CELTMode *m, const celt_norm *X,
 }
 
 #ifdef FIXED_POINT
-int celt_encode_with_ec(CELTEncoder * restrict st, const celt_int16 * pcm, celt_int16 * optional_resynthesis, int frame_size, unsigned char *compressed, int nbCompressedBytes, ec_enc *enc)
+int celt_encode_with_ec(CELTEncoder * restrict st, const celt_int16 * pcm, int frame_size, unsigned char *compressed, int nbCompressedBytes, ec_enc *enc)
 {
 #else
-int celt_encode_with_ec_float(CELTEncoder * restrict st, const celt_sig * pcm, celt_sig * optional_resynthesis, int frame_size, unsigned char *compressed, int nbCompressedBytes, ec_enc *enc)
+int celt_encode_with_ec_float(CELTEncoder * restrict st, const celt_sig * pcm, int frame_size, unsigned char *compressed, int nbCompressedBytes, ec_enc *enc)
 {
 #endif
    int i, c, N;
@@ -816,7 +816,11 @@ int celt_encode_with_ec_float(CELTEncoder * restrict st, const celt_sig * pcm, c
       RESTORE_STACK;
    }
 
-   resynth = optional_resynthesis!=NULL;
+#ifdef RESYNTH
+   resynth = 1;
+#else
+   resynth = 0;
+#endif
 
    if (st->complexity > 1 && LM>0)
    {
@@ -1054,12 +1058,7 @@ int celt_encode_with_ec_float(CELTEncoder * restrict st, const celt_sig * pcm, c
                st->prefilter_gain, gain1, st->mode->window, st->mode->overlap);
       }
 
-      /* De-emphasis and put everything back at the right place 
-         in the synthesis history */
-      if (optional_resynthesis != NULL) {
-         deemphasis(out_mem, optional_resynthesis, N, C, st->mode->preemph, st->preemph_memD);
-
-      }
+      deemphasis(out_mem, (celt_word16*)pcm, N, C, st->mode->preemph, st->preemph_memD);
    }
 #endif
 
@@ -1081,7 +1080,7 @@ int celt_encode_with_ec_float(CELTEncoder * restrict st, const celt_sig * pcm, c
 
 #ifdef FIXED_POINT
 #ifndef DISABLE_FLOAT_API
-int celt_encode_with_ec_float(CELTEncoder * restrict st, const float * pcm, float * optional_resynthesis, int frame_size, unsigned char *compressed, int nbCompressedBytes, ec_enc *enc)
+int celt_encode_with_ec_float(CELTEncoder * restrict st, const float * pcm, int frame_size, unsigned char *compressed, int nbCompressedBytes, ec_enc *enc)
 {
    int j, ret, C, N, LM, M;
    VARDECL(celt_int16, in);
@@ -1104,20 +1103,18 @@ int celt_encode_with_ec_float(CELTEncoder * restrict st, const float * pcm, floa
    for (j=0;j<C*N;j++)
      in[j] = FLOAT2INT16(pcm[j]);
 
-   if (optional_resynthesis != NULL) {
-     ret=celt_encode_with_ec(st,in,in,frame_size,compressed,nbCompressedBytes, enc);
-      for (j=0;j<C*N;j++)
-         optional_resynthesis[j]=in[j]*(1.f/32768.f);
-   } else {
-     ret=celt_encode_with_ec(st,in,NULL,frame_size,compressed,nbCompressedBytes, enc);
-   }
+   ret=celt_encode_with_ec(st,in,frame_size,compressed,nbCompressedBytes, enc);
+#ifdef RESYNTH
+   for (j=0;j<C*N;j++)
+      ((float*)pcm)[j]=in[j]*(1.f/32768.f);
+#endif
    RESTORE_STACK;
    return ret;
 
 }
 #endif /*DISABLE_FLOAT_API*/
 #else
-int celt_encode_with_ec(CELTEncoder * restrict st, const celt_int16 * pcm, celt_int16 * optional_resynthesis, int frame_size, unsigned char *compressed, int nbCompressedBytes, ec_enc *enc)
+int celt_encode_with_ec(CELTEncoder * restrict st, const celt_int16 * pcm, int frame_size, unsigned char *compressed, int nbCompressedBytes, ec_enc *enc)
 {
    int j, ret, C, N, LM, M;
    VARDECL(celt_sig, in);
@@ -1140,13 +1137,11 @@ int celt_encode_with_ec(CELTEncoder * restrict st, const celt_int16 * pcm, celt_
      in[j] = SCALEOUT(pcm[j]);
    }
 
-   if (optional_resynthesis != NULL) {
-      ret = celt_encode_with_ec_float(st,in,in,frame_size,compressed,nbCompressedBytes, enc);
-      for (j=0;j<C*N;j++)
-         optional_resynthesis[j] = FLOAT2INT16(in[j]);
-   } else {
-      ret = celt_encode_with_ec_float(st,in,NULL,frame_size,compressed,nbCompressedBytes, enc);
-   }
+   ret = celt_encode_with_ec_float(st,in,frame_size,compressed,nbCompressedBytes, enc);
+#ifdef RESYNTH
+   for (j=0;j<C*N;j++)
+      ((celt_int16*)pcm)[j] = FLOAT2INT16(in[j]);
+#endif
    RESTORE_STACK;
    return ret;
 }
@@ -1154,28 +1149,15 @@ int celt_encode_with_ec(CELTEncoder * restrict st, const celt_int16 * pcm, celt_
 
 int celt_encode(CELTEncoder * restrict st, const celt_int16 * pcm, int frame_size, unsigned char *compressed, int nbCompressedBytes)
 {
-   return celt_encode_with_ec(st, pcm, NULL, frame_size, compressed, nbCompressedBytes, NULL);
+   return celt_encode_with_ec(st, pcm, frame_size, compressed, nbCompressedBytes, NULL);
 }
 
 #ifndef DISABLE_FLOAT_API
 int celt_encode_float(CELTEncoder * restrict st, const float * pcm, int frame_size, unsigned char *compressed, int nbCompressedBytes)
 {
-   return celt_encode_with_ec_float(st, pcm, NULL, frame_size, compressed, nbCompressedBytes, NULL);
+   return celt_encode_with_ec_float(st, pcm, frame_size, compressed, nbCompressedBytes, NULL);
 }
 #endif /* DISABLE_FLOAT_API */
-
-int celt_encode_resynthesis(CELTEncoder * restrict st, const celt_int16 * pcm, celt_int16 * optional_resynthesis, int frame_size, unsigned char *compressed, int nbCompressedBytes)
-{
-   return celt_encode_with_ec(st, pcm, optional_resynthesis, frame_size, compressed, nbCompressedBytes, NULL);
-}
-
-#ifndef DISABLE_FLOAT_API
-int celt_encode_resynthesis_float(CELTEncoder * restrict st, const float * pcm, float * optional_resynthesis, int frame_size, unsigned char *compressed, int nbCompressedBytes)
-{
-   return celt_encode_with_ec_float(st, pcm, optional_resynthesis, frame_size, compressed, nbCompressedBytes, NULL);
-}
-#endif /* DISABLE_FLOAT_API */
-
 
 int celt_encoder_ctl(CELTEncoder * restrict st, int request, ...)
 {
