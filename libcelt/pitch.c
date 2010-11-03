@@ -276,7 +276,7 @@ celt_word16 remove_doubling(celt_word16 *x, int maxperiod, int minperiod,
       {
          celt_word32 x2y2;
          int sh, t;
-         x2y2 = HALF32(MULT32_32_Q31(xx,yy));
+         x2y2 = 1+HALF32(MULT32_32_Q31(xx,yy));
          sh = celt_ilog2(x2y2)>>1;
          t = VSHR32(x2y2, 2*(sh-7));
          g = g0 = VSHR32(MULT16_32_Q15(celt_rsqrt_norm(t), xy),sh+1);
@@ -318,7 +318,7 @@ celt_word16 remove_doubling(celt_word16 *x, int maxperiod, int minperiod,
       {
          celt_word32 x2y2;
          int sh, t;
-         x2y2 = MULT32_32_Q31(xx,yy);
+         x2y2 = 1+MULT32_32_Q31(xx,yy);
          sh = celt_ilog2(x2y2)>>1;
          t = VSHR32(x2y2, 2*(sh-7));
          g1 = VSHR32(MULT16_32_Q15(celt_rsqrt_norm(t), xy),sh+1);
