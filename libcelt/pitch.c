@@ -241,7 +241,8 @@ void pitch_search(const CELTMode *m, const celt_word16 * restrict x_lp, celt_wor
    RESTORE_STACK;
 }
 
-int second_check[16] = {0, 0, 3, 2, 3, 2, 5, 2, 3, 2, 3, 2, 5, 2, 3, 2};
+#ifdef ENABLE_POSTFILTER
+static const int second_check[16] = {0, 0, 3, 2, 3, 2, 5, 2, 3, 2, 3, 2, 5, 2, 3, 2};
 celt_word16 remove_doubling(celt_word16 *x, int maxperiod, int minperiod,
       int N, int *_T0, int prev_period, celt_word16 prev_gain)
 {
@@ -368,3 +369,4 @@ celt_word16 remove_doubling(celt_word16 *x, int maxperiod, int minperiod,
    return pg;
 }
 
+#endif /* ENABLE_POSTFILTER */
