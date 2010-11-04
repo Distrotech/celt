@@ -328,11 +328,11 @@ celt_word16 remove_doubling(celt_word16 *x, int maxperiod, int minperiod,
 #endif
       if (abs(T1-prev_period)<=2)
          cont = prev_gain;
-      else if (abs(T1-prev_period)<=4)
+      else if (abs(T1-prev_period)<=4 && 5*k*k < T0)
          cont = HALF32(prev_gain);
       else
          cont = 0;
-      if (g1 > MULT16_16_Q15(QCONST16(.85f,15),g0)-cont || g1 > QCONST16(.5f,15)-cont)
+      if (g1 > QCONST16(.3f,15) + MULT16_16_Q15(QCONST16(.4f,15),g0)-cont)
       {
          best_xy = xy;
          best_yy = yy;
