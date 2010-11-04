@@ -55,7 +55,7 @@
 
 static const int trim_cdf[7] = {0, 4, 10, 23, 119, 125, 128};
 #define COMBFILTER_MAXPERIOD 1024
-#define COMBFILTER_MINPERIOD 32
+#define COMBFILTER_MINPERIOD 16
 
 /** Encoder state 
  @brief Encoder state
@@ -789,9 +789,9 @@ int celt_encode_with_ec_float(CELTEncoder * restrict st, const celt_sig * pcm, i
          qg = floor(.5+gain1*8)-2;
 #endif
          ec_enc_bit_prob(enc, 1, 32768);
-         octave = EC_ILOG(pitch_index)-6;
-         ec_enc_uint(enc, octave, 5);
-         ec_enc_bits(enc, pitch_index-(32<<octave), 5+octave);
+         octave = EC_ILOG(pitch_index)-5;
+         ec_enc_uint(enc, octave, 6);
+         ec_enc_bits(enc, pitch_index-(16<<octave), 4+octave);
          ec_enc_bits(enc, qg, 2);
          gain1 = QCONST16(.125f,15)*(qg+2);
       }
@@ -1625,8 +1625,8 @@ int celt_decode_with_ec_float(CELTDecoder * restrict st, const unsigned char *da
    if (ec_dec_bit_prob(dec, 32768))
    {
       int qg, octave;
-      octave = ec_dec_uint(dec, 5);
-      postfilter_pitch = (32<<octave)+ec_dec_bits(dec, 5+octave);
+      octave = ec_dec_uint(dec, 6);
+      postfilter_pitch = (16<<octave)+ec_dec_bits(dec, 4+octave);
       qg = ec_dec_bits(dec, 2);
       postfilter_gain = QCONST16(.125f,15)*(qg+2);
    } else {

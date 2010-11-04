@@ -326,9 +326,9 @@ celt_word16 remove_doubling(celt_word16 *x, int maxperiod, int minperiod,
 #else
       g1 = xy/sqrt(1+2.f*xx*1.f*yy);
 #endif
-      if (abs(T1-prev_period)<=2)
+      if (abs(T1-prev_period)<=1)
          cont = prev_gain;
-      else if (abs(T1-prev_period)<=4 && 5*k*k < T0)
+      else if (abs(T1-prev_period)<=2 && 5*k*k < T0)
          cont = HALF32(prev_gain);
       else
          cont = 0;
