@@ -753,6 +753,7 @@ int celt_encode_with_ec_float(CELTEncoder * restrict st, const celt_sig * pcm, i
    int dual_stereo=0;
    int effectiveBytes;
    celt_word16 pf_threshold;
+   int rate_too_low;
    SAVE_STACK;
 
    if (nbCompressedBytes<0 || pcm==NULL)
@@ -1145,6 +1146,11 @@ int celt_encode_with_ec_float(CELTEncoder * restrict st, const celt_sig * pcm, i
 
    /* bits =   packet size        -       where we are           - safety */
    bits = (nbCompressedBytes*8<<BITRES) - ec_enc_tell(enc, BITRES) - 1;
+
+   /* It's acceptable to run out of bits at this point, it just means the
+      bitrate was too low to encode everything */
+   rate_too_low = bits<0;
+
    codedBands = compute_allocation(st->mode, st->start, st->end, offsets,
          alloc_trim, bits, pulses, fine_quant, fine_priority, C, LM, enc, 1, st->lastCodedBands);
    st->lastCodedBands = codedBands;
@@ -1241,7 +1247,7 @@ int celt_encode_with_ec_float(CELTEncoder * restrict st, const celt_sig * pcm, i
    ec_enc_done(enc);
    
    RESTORE_STACK;
-   if (ec_enc_get_error(enc))
+   if (!rate_too_low && ec_enc_get_error(enc))
       return CELT_CORRUPTED_DATA;
    else
       return nbCompressedBytes;
@@ -1747,6 +1753,7 @@ int celt_decode_with_ec_float(CELTDecoder * restrict st, const unsigned char *da
    celt_word16 postfilter_gain;
    int intensity=0;
    int dual_stereo=0;
+   int rate_too_low;
    SAVE_STACK;
 
    if (pcm==NULL)
@@ -1873,6 +1880,11 @@ int celt_decode_with_ec_float(CELTDecoder * restrict st, const unsigned char *da
    }
 
    bits = (len*8<<BITRES) - ec_dec_tell(dec, BITRES) - 1;
+
+   /* It's acceptable to run out of bits at this point, it just means the
+      bitrate was too low to encode everything */
+   rate_too_low = bits<0;
+
    codedBands = compute_allocation(st->mode, st->start, st->end, offsets,
          alloc_trim, bits, pulses, fine_quant, fine_priority, C, LM, dec, 0, 0);
    
@@ -1935,7 +1947,7 @@ int celt_decode_with_ec_float(CELTDecoder * restrict st, const unsigned char *da
    deemphasis(out_syn, pcm, N, C, st->mode->preemph, st->preemph_memD);
    st->loss_count = 0;
    RESTORE_STACK;
-   if (ec_dec_get_error(dec))
+   if (!rate_too_low && ec_dec_get_error(dec))
       return CELT_CORRUPTED_DATA;
    else
       return CELT_OK;

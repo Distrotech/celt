@@ -212,8 +212,6 @@ static void quant_coarse_energy_impl(const CELTMode *m, int start, int end,
                qi = IMIN(1, qi);
             if (bits_left < 16)
                qi = IMAX(-1, qi);
-            if (bits_left<8)
-               qi = 0;
          }
          pi = 2*IMIN(i,20);
          ec_laplace_encode(enc, &qi,
@@ -405,6 +403,8 @@ void unquant_coarse_energy(const CELTMode *m, int start, int end, celt_ener *eBa
          pi = 2*IMIN(i,20);
          qi = ec_laplace_decode(dec,
                prob_model[pi]<<7, prob_model[pi+1]<<6);
+         if (ec_dec_get_error(dec))
+            qi = -1;
          q = SHL16(qi,DB_SHIFT);
 
          oldEBands[i+c*m->nbEBands] = PSHR32(MULT16_16(coef,oldEBands[i+c*m->nbEBands]) + prev[c] + SHL32(EXTEND32(q),15), 15);
