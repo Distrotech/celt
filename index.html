@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset='utf-8'>
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <link href='https://fonts.googleapis.com/css?family=Chivo:900' rel='stylesheet' type='text/css'>
+    <link rel="stylesheet" type="text/css" href="stylesheets/stylesheet.css" media="screen" />
+    <link rel="stylesheet" type="text/css" href="stylesheets/pygment_trac.css" media="screen" />
+    <link rel="stylesheet" type="text/css" href="stylesheets/print.css" media="print" />
+    <!--[if lt IE 9]>
+    <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <title>Celt by Distrotech</title>
+  </head>
+
+  <body>
+    <div id="container">
+      <div class="inner">
+
+        <header>
+          <h1>Celt</h1>
+          <h2>Mirror of git://git.xiph.org/celt.git</h2>
+        </header>
+
+        <section id="downloads" class="clearfix">
+          <a href="https://github.com/Distrotech/celt/zipball/master" id="download-zip" class="button"><span>Download .zip</span></a>
+          <a href="https://github.com/Distrotech/celt/tarball/master" id="download-tar-gz" class="button"><span>Download .tar.gz</span></a>
+          <a href="https://github.com/Distrotech/celt" id="view-on-github" class="button"><span>View on GitHub</span></a>
+        </section>
+
+        <hr>
+
+        <section id="main_content">
+          <p>CELT is a very low delay audio codec designed for high-quality communications.</p>
+
+<p>Traditional full-bandwidth  codecs such as Vorbis and AAC can offer high
+quality but they require codec delays of hundreds of milliseconds, which
+makes them unsuitable  for real-time interactive applications like tele-
+conferencing. Speech targeted codecs, such as Speex or G.722, have lower
+20-40ms delays but their speech focus and limited sampling rates 
+restricts their quality, especially for music.</p>
+
+<p>Additionally, the other mandatory components of a full network audio system—
+audio interfaces, routers, jitter buffers— each add their own delay. For lower
+speed networks the time it takes to serialize a  packet onto the network cable
+takes considerable time, and over the long distances the speed of light
+imposes a significant delay.</p>
+
+<p>In teleconferencing— it is important to keep delay low so that the participants
+can communicate fluidly without talking on top of each  other and so that their
+own voices don't return after a round trip as an annoying echo.</p>
+
+<p>For network music performance— research has show that the total one way delay
+must be kept under 25ms to avoid degrading the musicians performance. </p>
+
+<p>Since many of the sources of delay in a complete system are outside of the
+user's control (such as the  speed of light) it is often  only possible to
+reduce the total delay by reducing the codec delay. </p>
+
+<p>Low delay has traditionally been considered a challenging area in audio codec
+design, because as a codec is forced to work on the smaller chunks of audio
+required for low delay it has access to less redundancy and less perceptual
+information which it can use to reduce the size of the transmitted audio.</p>
+
+<p>CELT is designed to bridge the gap between "music" and "speech" codecs,
+permitting new very high quality teleconferencing applications, and to go
+further, permitting latencies much lower than speech codecs normally provide
+to enable applications such as remote musical collaboration even over long
+distances.  </p>
+
+<p>In keeping with the Xiph.Org mission—  CELT is also designed to accomplish
+this without copyright or patent encumbrance. Only by keeping the formats
+that drive our Internet communication free and unencumbered can we maximize
+innovation, collaboration, and interoperability.  Fortunately, CELT is ahead
+of the adoption curve in its target application space, so there should be 
+no reason for someone who needs what CELT provides to go with a proprietary
+codec.</p>
+
+<p>CELT has been tested on x86, x86_64, ARM, and the TI C55x DSPs, and should
+be portable to any platform with a working C compiler and on the order of
+100 MIPS of processing power. </p>
+
+<p>The code is still in early stage, so it may be broken from time to time, and
+the bit-stream is not frozen yet, so it is different from one version to 
+another. Oh, and don't complain if it sets your house on fire.</p>
+
+<p>Complaints and accolades can be directed to the CELT mailing list:
+<a href="http://lists.xiph.org/mailman/listinfo/celt-dev/">http://lists.xiph.org/mailman/listinfo/celt-dev/</a></p>
+
+<p>To compile:
+% ./configure
+% make</p>
+
+<p>For platforms without fast floating point support (such as ARM) use the
+--enable-fixed argument to configure to build a fixed-point version of CELT.</p>
+
+<p>There are Ogg-based encode/decode tools in tools/. These are quite similar to
+the speexenc/speexdec tools. Use the --help option for details.</p>
+
+<p>There is also a basic tool for testing the encoder and decoder called
+"testcelt" located in libcelt/: </p>
+
+<p>% testcelt  input.sw output.sw</p>
+
+<p>where input.sw is a 16-bit (machine endian) audio file sampled at 32000 Hz to 
+96000 Hz. The output file is already decompressed.  </p>
+
+<p>For example, for a 44.1 kHz mono stream at ~64kbit/sec and with 256 sample
+frames:</p>
+
+<p>% testcelt 44100 1 256 46 intput.sw output.sw </p>
+
+<p>Since 44100/256*46*8 = 63393.74 bits/sec.</p>
+
+<p>All even frame sizes from 64 to 512 are currently supported, although
+power-of-two sizes are recommended  and most CELT development is done
+using a size of 256.  The delay imposed by CELT is  1.25x - 1.5x  the 
+frame duration depending on the frame size and some details of CELT's
+internal operation.  For 256 sample frames the delay is 1.5x  or  384
+samples, so the total codec delay in the above example is 8.70ms 
+(1000/(44100/384)).   </p>
+        </section>
+
+        <footer>
+          Celt is maintained by <a href="https://github.com/Distrotech">Distrotech</a><br>
+          This page was generated by <a href="http://pages.github.com">GitHub Pages</a>. Tactile theme by <a href="http://twitter.com/jasonlong">Jason Long</a>.
+        </footer>
+
+        
+      </div>
+    </div>
+  </body>
+</html>
